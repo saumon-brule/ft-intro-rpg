@@ -1,0 +1,35 @@
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import tseslint from 'typescript-eslint'
+import { defineConfig, globalIgnores } from 'eslint/config'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      js.configs.recommended,
+      tseslint.configs.recommended,
+      reactHooks.configs['recommended-latest'],
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+    },
+    rules: {
+      "indent": ["error", "tab"],
+      "semi": ["error", "always"],
+      "no-trailing-spaces": "error",
+      "eol-last": ["error", "always"],
+      "quotes": ["error", "double"],
+      "brace-style": ["error", "1tbs"],
+      "comma-dangle": ["error", "never"],
+      "object-curly-spacing": ["error", "always"],
+      "comma-spacing": ["error", { before: false, after: true }],
+      "key-spacing": ["error", { beforeColon: false, afterColon: true }]
+    }
+  },
+])
