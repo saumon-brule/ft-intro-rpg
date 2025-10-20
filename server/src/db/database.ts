@@ -54,8 +54,10 @@ export interface GuildInsert {
 	old_job: string;
 }
 
+
 export interface Team {
 	id: number;
+	name: string;
 	leader_id: number;
 	guild_id: number;
 	state_lock: boolean;
@@ -64,11 +66,30 @@ export interface Team {
 	updated_at?: string;
 }
 
+
 export interface TeamInsert {
+	name: string;
 	leader_id: number;
 	guild_id: number;
 	state_lock?: boolean;
 	xp?: number;
+}
+
+export interface TeamMember {
+	team_id: number;
+	user_id: number;
+	role: "owner" | "member";
+	joined_at?: string;
+}
+
+export interface TeamInvitation {
+	id: number;
+	team_id: number;
+	user_id: number;
+	invited_by: number;
+	status: "pending" | "accepted" | "declined";
+	created_at?: string;
+	responded_at?: string | null;
 }
 
 class Database {
@@ -81,7 +102,11 @@ class Database {
 				console.error("Error opening database:", err);
 			} else {
 				console.log("Database connected successfully");
-				this.initializeDatabase();
+				// Ensure foreign key constraints are enforced
+				this.db.run("PRAGMA foreign_keys = ON", (prErr) => {
+					if (prErr) console.error("Failed to enable foreign keys:", prErr);
+					this.initializeDatabase();
+				});
 			}
 		});
 	}
@@ -122,6 +147,7 @@ class Database {
 		const createTeamsTable = `
 			CREATE TABLE IF NOT EXISTS teams (
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				name TEXT NOT NULL,
 				leader_id INTEGER NOT NULL,
 				guild_id INTEGER NOT NULL,
 				state_lock BOOLEAN DEFAULT 0,
@@ -130,6 +156,35 @@ class Database {
 				updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 				FOREIGN KEY (leader_id) REFERENCES users(id) ON DELETE CASCADE,
 				FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
+			)
+		`;
+
+		// Create team_members table
+		const createTeamMembersTable = `
+			CREATE TABLE IF NOT EXISTS team_members (
+				team_id INTEGER NOT NULL,
+				user_id INTEGER NOT NULL,
+				role TEXT NOT NULL CHECK(role IN ('owner', 'member')),
+				joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+				PRIMARY KEY (team_id, user_id),
+				FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+				FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+			)
+		`;
+
+		// Create team_invitations table
+		const createTeamInvitationsTable = `
+			CREATE TABLE IF NOT EXISTS team_invitations (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				team_id INTEGER NOT NULL,
+				user_id INTEGER NOT NULL,
+				invited_by INTEGER NOT NULL,
+				status TEXT NOT NULL CHECK(status IN ('pending', 'accepted', 'declined')),
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+				responded_at DATETIME,
+				FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+				FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+				FOREIGN KEY (invited_by) REFERENCES users(id) ON DELETE CASCADE
 			)
 		`;
 
@@ -157,6 +212,22 @@ class Database {
 					console.log("Teams table is ready");
 				}
 			});
+
+			this.db.run(createTeamMembersTable, (err) => {
+				if (err) {
+					console.error("Error creating team_members table:", err);
+				} else {
+					console.log("Team members table is ready");
+				}
+			});
+
+			this.db.run(createTeamInvitationsTable, (err) => {
+				if (err) {
+					console.error("Error creating team_invitations table:", err);
+				} else {
+					console.log("Team invitations table is ready");
+				}
+			});
 		});
 	}
 
@@ -172,7 +243,7 @@ class Database {
 			});
 		});
 	}
-	
+
 	async findUserById(id: number): Promise<User | null> {
 		const query = "SELECT * FROM users WHERE id = ?";
 		
@@ -479,8 +550,8 @@ class Database {
 
 	async createTeam(teamData: TeamInsert): Promise<Team> {
 		const query = `
-			INSERT INTO teams (leader_id, guild_id, state_lock, xp)
-			VALUES (?, ?, ?, ?)
+			INSERT INTO teams (name, leader_id, guild_id, state_lock, xp)
+			VALUES (?, ?, ?, ?, ?)
 		`;
 
 		const stateLock = teamData.state_lock ?? false;
@@ -489,7 +560,7 @@ class Database {
 		return new Promise((resolve, reject) => {
 			this.db.run(
 				query,
-				[teamData.leader_id, teamData.guild_id, stateLock, xp],
+				[teamData.name, teamData.leader_id, teamData.guild_id, stateLock, xp],
 				function(err) {
 					if (err) {
 						reject(err);
@@ -569,15 +640,166 @@ class Database {
 	}
 
 	async deleteTeam(id: number): Promise<boolean> {
-		const query = "DELETE FROM teams WHERE id = ?";
-
+		// Perform an explicit transactional delete to ensure related rows are removed
+		const dbRef = this.db;
 		return new Promise((resolve, reject) => {
-			this.db.run(query, [id], function(err) {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(this.changes > 0);
-				}
+			dbRef.serialize(() => {
+				dbRef.run("BEGIN TRANSACTION");
+				dbRef.run("DELETE FROM team_members WHERE team_id = ?", [id]);
+				dbRef.run("DELETE FROM team_invitations WHERE team_id = ?", [id]);
+				dbRef.run("DELETE FROM teams WHERE id = ?", [id], function(err) {
+					if (err) {
+						dbRef.run("ROLLBACK", () => {
+							reject(err);
+						});
+					} else {
+						dbRef.run("COMMIT", (cErr) => {
+							if (cErr) return reject(cErr);
+							resolve(this.changes > 0);
+						});
+					}
+				});
+			});
+		});
+	}
+
+	// ===== TEAM MEMBERS & INVITES =====
+
+	async getTeamMembers(teamId: number): Promise<TeamMember[]> {
+		const query = "SELECT * FROM team_members WHERE team_id = ?";
+		return new Promise((resolve, reject) => {
+			this.db.all(query, [teamId], (err, rows: TeamMember[]) => {
+				if (err) return reject(err);
+				resolve(rows || []);
+			});
+		});
+	}
+
+	async isUserInTeam(teamId: number, userId: number): Promise<boolean> {
+		const query = "SELECT 1 FROM team_members WHERE team_id = ? AND user_id = ? LIMIT 1";
+		return new Promise((resolve, reject) => {
+			this.db.get(query, [teamId, userId], (err, row) => {
+				if (err) return reject(err);
+				resolve(!!row);
+			});
+		});
+	}
+
+	async getTeamByMember(userId: number): Promise<Team | null> {
+		const query = `
+			SELECT t.* FROM teams t
+			JOIN team_members m ON t.id = m.team_id
+			WHERE m.user_id = ?
+			LIMIT 1
+		`;
+		return new Promise((resolve, reject) => {
+			this.db.get(query, [userId], (err, row: Team | undefined) => {
+				if (err) return reject(err);
+				resolve(row || null);
+			});
+		});
+	}
+
+	async addTeamMember(teamId: number, userId: number, role: "owner" | "member" = "member"): Promise<boolean> {
+		const query = "INSERT OR REPLACE INTO team_members (team_id, user_id, role) VALUES (?, ?, ?)";
+		return new Promise((resolve, reject) => {
+			this.db.run(query, [teamId, userId, role], function(err) {
+				if (err) return reject(err);
+				resolve(true);
+			});
+		});
+	}
+
+	async removeTeamMember(teamId: number, userId: number): Promise<boolean> {
+		const query = "DELETE FROM team_members WHERE team_id = ? AND user_id = ?";
+		return new Promise((resolve, reject) => {
+			this.db.run(query, [teamId, userId], function(err) {
+				if (err) return reject(err);
+				resolve(this.changes > 0);
+			});
+		});
+	}
+
+	async getPendingInvitations(teamId: number): Promise<TeamInvitation[]> {
+		const query = "SELECT * FROM team_invitations WHERE team_id = ? AND status = 'pending'";
+		return new Promise((resolve, reject) => {
+			this.db.all(query, [teamId], (err, rows: TeamInvitation[]) => {
+				if (err) return reject(err);
+				resolve(rows || []);
+			});
+		});
+	}
+
+	async getInvitation(teamId: number, userId: number): Promise<TeamInvitation | null> {
+		const query = "SELECT * FROM team_invitations WHERE team_id = ? AND user_id = ? LIMIT 1";
+		return new Promise((resolve, reject) => {
+			this.db.get(query, [teamId, userId], (err, row: TeamInvitation | undefined) => {
+				if (err) return reject(err);
+				resolve(row || null);
+			});
+		});
+	}
+
+	async getPendingInvitation(teamId: number, userId: number): Promise<TeamInvitation | null> {
+		const query = "SELECT * FROM team_invitations WHERE team_id = ? AND user_id = ? AND status = 'pending' LIMIT 1";
+		return new Promise((resolve, reject) => {
+			this.db.get(query, [teamId, userId], (err, row: TeamInvitation | undefined) => {
+				if (err) return reject(err);
+				resolve(row || null);
+			});
+		});
+	}
+
+	async createInvitation(teamId: number, userId: number, invitedBy: number): Promise<TeamInvitation> {
+		const query = `INSERT INTO team_invitations (team_id, user_id, invited_by, status) VALUES (?, ?, ?, 'pending')`;
+		return new Promise((resolve, reject) => {
+			this.db.run(query, [teamId, userId, invitedBy], function(err) {
+				if (err) return reject(err);
+				const id = this.lastID;
+				db.getInvitationById(id).then(inv => {
+					if (inv) resolve(inv);
+					else reject(new Error('Failed to fetch created invitation'));
+				}).catch(reject);
+			});
+		});
+	}
+
+	async getInvitationById(id: number): Promise<TeamInvitation | null> {
+		const query = "SELECT * FROM team_invitations WHERE id = ?";
+		return new Promise((resolve, reject) => {
+			this.db.get(query, [id], (err, row: TeamInvitation | undefined) => {
+				if (err) return reject(err);
+				resolve(row || null);
+			});
+		});
+	}
+
+	async updateInvitationStatus(teamId: number, userId: number, status: "accepted" | "declined"): Promise<boolean> {
+		const query = `UPDATE team_invitations SET status = ?, responded_at = CURRENT_TIMESTAMP WHERE team_id = ? AND user_id = ? AND status = 'pending'`;
+		return new Promise((resolve, reject) => {
+			this.db.run(query, [status, teamId, userId], function(err) {
+				if (err) return reject(err);
+				resolve(this.changes > 0);
+			});
+		});
+	}
+
+	async cancelInvitation(teamId: number, userId: number): Promise<boolean> {
+		const query = `DELETE FROM team_invitations WHERE team_id = ? AND user_id = ? AND status = 'pending'`;
+		return new Promise((resolve, reject) => {
+			this.db.run(query, [teamId, userId], function(err) {
+				if (err) return reject(err);
+				resolve(this.changes > 0);
+			});
+		});
+	}
+
+	async countTeamMembers(teamId: number): Promise<number> {
+		const query = "SELECT COUNT(*) as cnt FROM team_members WHERE team_id = ?";
+		return new Promise((resolve, reject) => {
+			this.db.get(query, [teamId], (err, row: any) => {
+				if (err) return reject(err);
+				resolve(row ? row.cnt : 0);
 			});
 		});
 	}

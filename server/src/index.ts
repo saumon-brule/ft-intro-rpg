@@ -7,6 +7,7 @@ import { createUserRouter } from "./routes/users";
 import { verifyToken } from "./middlewares/auth";
 import { errorHandler } from "./middlewares/validation";
 import guildsRouter from "./routes/guilds";
+import teamsRouter from "./routes/teams";
 
 configDotenv({ quiet: true });
 
@@ -35,6 +36,8 @@ apiRouter.use("/auth", authRouter);
 apiRouter.use("/users", verifyToken, userRouter);
 // Guild routes (requires authentication, verified in each route)
 apiRouter.use("/guilds", guildsRouter);
+// Team routes (requires authentication, verified in each route)
+apiRouter.use("/teams", teamsRouter);
 
 expressApp.use("/api", apiRouter);
 
