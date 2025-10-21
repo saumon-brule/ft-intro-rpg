@@ -56,7 +56,7 @@ export const authCallback = (req: AuthenticatedRequest, res: Response) => {
 				sameSite: "strict",
 				maxAge: 1000 * 60 * 60 * 24
 			});
-			res.redirect("/");
+			res.redirect("http://localhost:3000");
 		} catch (error) {
 			console.error("Database error:", error);
 			res.redirect("/auth/error");
