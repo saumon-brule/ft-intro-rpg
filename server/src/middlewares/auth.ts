@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { db, UserPermission } from "../db/database";
 
-const JWT_SECRET = process.env.JWT_TOKEN ?? "SECRET";
+const JWT_SECRET = process.env.JWT_SECRET ?? "SECRET";
 
 export interface UserJwtPayload {
 	id: number;

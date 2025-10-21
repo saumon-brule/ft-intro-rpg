@@ -3,7 +3,7 @@ import { Response } from "express";
 import jwt from "jsonwebtoken";
 import { db } from "../db/database";
 
-const JWT_SECRET = process.env.JWT_TOKEN ?? "SECRET";
+const JWT_SECRET = process.env.JWT_SECRET ?? "SECRET";
 
 export type UserJwtPayload = { id: number };
 
