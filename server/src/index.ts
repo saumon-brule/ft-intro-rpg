@@ -20,7 +20,11 @@ process.on("uncaughtException", (error) => {
 	console.trace(error);
 });
 
-const ftApp = new FtApp([{ uid: process.env.FT_APP_UID, secret: process.env.FT_APP_SECRET, redirectURI: "http://localhost:3000/api/auth/callback" }]);
+const port = process.env.PORT ? parseInt(process.env.PORT) : 3001;
+const protocol = process.env.PROTOCOL ?? "http";
+const hostname = process.env.HOSTNAME ?? "localhost";
+
+const ftApp = new FtApp([{ uid: process.env.FT_APP_UID, secret: process.env.FT_APP_SECRET, redirectURI: `${protocol}://${hostname}:${port}/api/auth/callback` }]);
 const expressApp = express();
 
 expressApp.use(cookieParser());
@@ -44,9 +48,7 @@ expressApp.use("/api", apiRouter);
 // Global error handler (must be after all routes)
 expressApp.use(errorHandler);
 
-const port = process.env.PORT ? parseInt(process.env.PORT) : 3001;
-const hostname = process.env.HOSTNAME ?? "localhost";
 
 expressApp.listen(port, hostname, () => {
-	console.log(`Server started on http://${hostname}:${port}`);
+	console.log(`Server started on ${protocol}://${hostname}:${port}`);
 });
