@@ -23,25 +23,20 @@ Stocke les informations des guildes.
 | Colonne       | Type     | Description                    |
 |---------------|----------|--------------------------------|
 | id            | INTEGER  | Clé primaire auto-incrémentée  |
-| name          | TEXT     | Nom de la guilde               |
-| image         | TEXT     | URL de l'image de la guilde    |
 | motto         | TEXT     | Devise de la guilde            |
 | description   | TEXT     | Description de la guilde       |
 | primary_color | TEXT     | Couleur primaire (hex)         |
 | place         | TEXT     | Lieu de la guilde              |
 | old_job       | TEXT     | Ancien métier associé          |
 | created_at    | DATETIME | Date de création               |
-| updated_at    | DATETIME | Date de dernière modification  |
-
+<!-- leader_id and state_lock removed from teams schema -->
 ### Table `teams`
 Stocke les informations des équipes.
 
 | Colonne    | Type     | Description                           |
 |------------|----------|---------------------------------------|
 | id         | INTEGER  | Clé primaire auto-incrémentée         |
-| leader_id  | INTEGER  | ID du leader (référence `users.id`)   |
 | guild_id   | INTEGER  | ID de la guilde (référence `guilds.id`) |
-| state_lock | BOOLEAN  | État de verrouillage (défaut: false)  |
 | xp         | INTEGER  | Points d'expérience (défaut: 0)       |
 | created_at | DATETIME | Date de création                      |
 | updated_at | DATETIME | Date de dernière modification         |
@@ -50,6 +45,8 @@ Stocke les informations des équipes.
 
 - `teams.leader_id` → `users.id` (CASCADE on DELETE)
 - `teams.guild_id` → `guilds.id` (CASCADE on DELETE)
+
+<!-- leader_id and state_lock removed from teams schema -->
 
 ## Méthodes disponibles
 
@@ -71,7 +68,6 @@ Stocke les informations des équipes.
 - `getAllTeams()` - Récupère toutes les équipes
 - `getTeamById(id)` - Récupère une équipe par son ID
 - `getTeamsByGuild(guildId)` - Récupère toutes les équipes d'une guilde
-- `getTeamByLeader(leaderId)` - Récupère l'équipe d'un leader
 - `createTeam(teamData)` - Crée une nouvelle équipe
 - `updateTeam(id, teamData)` - Met à jour une équipe
 - `addTeamXp(teamId, xpToAdd)` - Ajoute de l'XP à une équipe

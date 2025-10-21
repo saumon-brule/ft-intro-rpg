@@ -57,10 +57,7 @@ export interface GuildInsert {
 
 export interface Team {
 	id: number;
-	name: string;
-	leader_id: number;
 	guild_id: number;
-	state_lock: boolean;
 	xp: number;
 	created_at?: string;
 	updated_at?: string;
@@ -68,28 +65,14 @@ export interface Team {
 
 
 export interface TeamInsert {
-	name: string;
-	leader_id: number;
 	guild_id: number;
-	state_lock?: boolean;
 	xp?: number;
 }
 
 export interface TeamMember {
 	team_id: number;
 	user_id: number;
-	role: "owner" | "member";
 	joined_at?: string;
-}
-
-export interface TeamInvitation {
-	id: number;
-	team_id: number;
-	user_id: number;
-	invited_by: number;
-	status: "pending" | "accepted" | "declined";
-	created_at?: string;
-	responded_at?: string | null;
 }
 
 class Database {
@@ -147,24 +130,19 @@ class Database {
 		const createTeamsTable = `
 			CREATE TABLE IF NOT EXISTS teams (
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
-				name TEXT NOT NULL,
-				leader_id INTEGER NOT NULL,
 				guild_id INTEGER NOT NULL,
-				state_lock BOOLEAN DEFAULT 0,
 				xp INTEGER DEFAULT 0,
 				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 				updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-				FOREIGN KEY (leader_id) REFERENCES users(id) ON DELETE CASCADE,
 				FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
 			)
 		`;
 
-		// Create team_members table
+		// Create team_members table (no role column)
 		const createTeamMembersTable = `
 			CREATE TABLE IF NOT EXISTS team_members (
 				team_id INTEGER NOT NULL,
 				user_id INTEGER NOT NULL,
-				role TEXT NOT NULL CHECK(role IN ('owner', 'member')),
 				joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 				PRIMARY KEY (team_id, user_id),
 				FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
@@ -172,21 +150,6 @@ class Database {
 			)
 		`;
 
-		// Create team_invitations table
-		const createTeamInvitationsTable = `
-			CREATE TABLE IF NOT EXISTS team_invitations (
-				id INTEGER PRIMARY KEY AUTOINCREMENT,
-				team_id INTEGER NOT NULL,
-				user_id INTEGER NOT NULL,
-				invited_by INTEGER NOT NULL,
-				status TEXT NOT NULL CHECK(status IN ('pending', 'accepted', 'declined')),
-				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-				responded_at DATETIME,
-				FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
-				FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-				FOREIGN KEY (invited_by) REFERENCES users(id) ON DELETE CASCADE
-			)
-		`;
 
 		this.db.serialize(() => {
 			this.db.run(createUsersTable, (err) => {
@@ -221,13 +184,7 @@ class Database {
 				}
 			});
 
-			this.db.run(createTeamInvitationsTable, (err) => {
-				if (err) {
-					console.error("Error creating team_invitations table:", err);
-				} else {
-					console.log("Team invitations table is ready");
-				}
-			});
+
 		});
 	}
 
@@ -534,67 +491,27 @@ class Database {
 		});
 	}
 
-	async getTeamByLeader(leaderId: number): Promise<Team | null> {
-		const query = "SELECT * FROM teams WHERE leader_id = ?";
-		
+
+
+	async createTeam(teamData: TeamInsert): Promise<Team> {
+		const query = `INSERT INTO teams (guild_id, xp) VALUES (?, ?)`;
+
+		const xp = teamData.xp ?? 0;
+
 		return new Promise((resolve, reject) => {
-			this.db.get(query, [leaderId], (err, row: Team | undefined) => {
-				if (err) {
-					reject(err);
-				} else {
-					resolve(row || null);
-				}
+			this.db.run(query, [teamData.guild_id, xp], function(err) {
+				if (err) return reject(err);
+				db.getTeamById(this.lastID).then(team => team ? resolve(team) : reject(new Error("Failed to retrieve created team"))).catch(reject);
 			});
 		});
 	}
 
-	async createTeam(teamData: TeamInsert): Promise<Team> {
-		const query = `
-			INSERT INTO teams (name, leader_id, guild_id, state_lock, xp)
-			VALUES (?, ?, ?, ?, ?)
-		`;
-
-		const stateLock = teamData.state_lock ?? false;
-		const xp = teamData.xp ?? 0;
-
-		return new Promise((resolve, reject) => {
-			this.db.run(
-				query,
-				[teamData.name, teamData.leader_id, teamData.guild_id, stateLock, xp],
-				function(err) {
-					if (err) {
-						reject(err);
-					} else {
-						db.getTeamById(this.lastID)
-							.then(team => {
-								if (team) {
-									resolve(team);
-								} else {
-									reject(new Error("Failed to retrieve created team"));
-								}
-							})
-							.catch(reject);
-					}
-				}
-			);
-		});
-	}
-
-	async updateTeam(id: number, teamData: Partial<TeamInsert> & { xp?: number; state_lock?: boolean }): Promise<Team | null> {
+	async updateTeam(id: number, teamData: Partial<TeamInsert> & { xp?: number }): Promise<Team | null> {
 		const updates: string[] = [];
 		const values: any[] = [];
-
-		if (teamData.leader_id !== undefined) {
-			updates.push("leader_id = ?");
-			values.push(teamData.leader_id);
-		}
 		if (teamData.guild_id !== undefined) {
 			updates.push("guild_id = ?");
 			values.push(teamData.guild_id);
-		}
-		if (teamData.state_lock !== undefined) {
-			updates.push("state_lock = ?");
-			values.push(teamData.state_lock ? 1 : 0);
 		}
 		if (teamData.xp !== undefined) {
 			updates.push("xp = ?");
@@ -646,7 +563,6 @@ class Database {
 			dbRef.serialize(() => {
 				dbRef.run("BEGIN TRANSACTION");
 				dbRef.run("DELETE FROM team_members WHERE team_id = ?", [id]);
-				dbRef.run("DELETE FROM team_invitations WHERE team_id = ?", [id]);
 				dbRef.run("DELETE FROM teams WHERE id = ?", [id], function(err) {
 					if (err) {
 						dbRef.run("ROLLBACK", () => {
@@ -663,7 +579,7 @@ class Database {
 		});
 	}
 
-	// ===== TEAM MEMBERS & INVITES =====
+	// ===== TEAM MEMBERS =====
 
 	async getTeamMembers(teamId: number): Promise<TeamMember[]> {
 		const query = "SELECT * FROM team_members WHERE team_id = ?";
@@ -700,10 +616,10 @@ class Database {
 		});
 	}
 
-	async addTeamMember(teamId: number, userId: number, role: "owner" | "member" = "member"): Promise<boolean> {
-		const query = "INSERT OR REPLACE INTO team_members (team_id, user_id, role) VALUES (?, ?, ?)";
+	async addTeamMember(teamId: number, userId: number): Promise<boolean> {
+		const query = "INSERT OR REPLACE INTO team_members (team_id, user_id) VALUES (?, ?)";
 		return new Promise((resolve, reject) => {
-			this.db.run(query, [teamId, userId, role], function(err) {
+			this.db.run(query, [teamId, userId], function(err) {
 				if (err) return reject(err);
 				resolve(true);
 			});
@@ -720,79 +636,7 @@ class Database {
 		});
 	}
 
-	async getPendingInvitations(teamId: number): Promise<TeamInvitation[]> {
-		const query = "SELECT * FROM team_invitations WHERE team_id = ? AND status = 'pending'";
-		return new Promise((resolve, reject) => {
-			this.db.all(query, [teamId], (err, rows: TeamInvitation[]) => {
-				if (err) return reject(err);
-				resolve(rows || []);
-			});
-		});
-	}
 
-	async getInvitation(teamId: number, userId: number): Promise<TeamInvitation | null> {
-		const query = "SELECT * FROM team_invitations WHERE team_id = ? AND user_id = ? LIMIT 1";
-		return new Promise((resolve, reject) => {
-			this.db.get(query, [teamId, userId], (err, row: TeamInvitation | undefined) => {
-				if (err) return reject(err);
-				resolve(row || null);
-			});
-		});
-	}
-
-	async getPendingInvitation(teamId: number, userId: number): Promise<TeamInvitation | null> {
-		const query = "SELECT * FROM team_invitations WHERE team_id = ? AND user_id = ? AND status = 'pending' LIMIT 1";
-		return new Promise((resolve, reject) => {
-			this.db.get(query, [teamId, userId], (err, row: TeamInvitation | undefined) => {
-				if (err) return reject(err);
-				resolve(row || null);
-			});
-		});
-	}
-
-	async createInvitation(teamId: number, userId: number, invitedBy: number): Promise<TeamInvitation> {
-		const query = `INSERT INTO team_invitations (team_id, user_id, invited_by, status) VALUES (?, ?, ?, 'pending')`;
-		return new Promise((resolve, reject) => {
-			this.db.run(query, [teamId, userId, invitedBy], function(err) {
-				if (err) return reject(err);
-				const id = this.lastID;
-				db.getInvitationById(id).then(inv => {
-					if (inv) resolve(inv);
-					else reject(new Error('Failed to fetch created invitation'));
-				}).catch(reject);
-			});
-		});
-	}
-
-	async getInvitationById(id: number): Promise<TeamInvitation | null> {
-		const query = "SELECT * FROM team_invitations WHERE id = ?";
-		return new Promise((resolve, reject) => {
-			this.db.get(query, [id], (err, row: TeamInvitation | undefined) => {
-				if (err) return reject(err);
-				resolve(row || null);
-			});
-		});
-	}
-
-	async updateInvitationStatus(teamId: number, userId: number, status: "accepted" | "declined"): Promise<boolean> {
-		const query = `UPDATE team_invitations SET status = ?, responded_at = CURRENT_TIMESTAMP WHERE team_id = ? AND user_id = ? AND status = 'pending'`;
-		return new Promise((resolve, reject) => {
-			this.db.run(query, [status, teamId, userId], function(err) {
-				if (err) return reject(err);
-				resolve(this.changes > 0);
-			});
-		});
-	}
-
-	async cancelInvitation(teamId: number, userId: number): Promise<boolean> {
-		const query = `DELETE FROM team_invitations WHERE team_id = ? AND user_id = ? AND status = 'pending'`;
-		return new Promise((resolve, reject) => {
-			this.db.run(query, [teamId, userId], function(err) {
-				if (err) return reject(err);
-				resolve(this.changes > 0);
-			});
-		});
-	}
 
 	async countTeamMembers(teamId: number): Promise<number> {
 		const query = "SELECT COUNT(*) as cnt FROM team_members WHERE team_id = ?";
