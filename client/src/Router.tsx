@@ -26,7 +26,7 @@ export default function Router() {
 				},
 				{
 					path: "login",
-					element: !user.loggedIn ? <Login /> : <>{console.log("FUCK")}<Navigate to="/login" replace /></>
+					element: !user.loggedIn ? <Login /> : <Navigate to="/login" replace />
 				},
 				{
 					path: "admin",

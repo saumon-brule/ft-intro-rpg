@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 export default function RequireRole({ role, fallback }: { role: number, fallback: ReactNode }) {
 	const user = useSelector((state: RootState) => state.user);
 
-	if (user || role)
+	if (user.permission != role)
 		return fallback;
 	return <Outlet />;
 }

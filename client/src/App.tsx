@@ -9,5 +9,5 @@ export default function App() {
 	const loading = useAuth();
 
 	if (loading) return <Loading />;
-	return <>coucou<Outlet /></>;
+	return <Outlet />;
 }
