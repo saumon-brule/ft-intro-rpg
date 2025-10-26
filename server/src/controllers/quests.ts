@@ -73,6 +73,13 @@ export const assignQuestPNJ = async (req: Request, res: Response) => {
   if (!user) return res.status(400).json({ error: "pnj_id user not found" });
   if (user.permission < UserPermission.PNJ) return res.status(400).json({ error: "pnj_id must refer to a PNJ or admin user" });
 
+  // Ensure this PNJ isn't already assigned to another quest
+  const allQuests = await db.getAllQuests();
+  const conflicting = allQuests.find((q) => q.pnj_id === pnjIdNum && q.id !== id);
+  if (conflicting) {
+    return res.status(400).json({ error: "This PNJ is already assigned to another quest", quest_id: conflicting.id });
+  }
+
   const updated = await db.updateQuest(id, { pnj_id: pnjIdNum });
   if (!updated) return res.status(404).json({ error: "Quest not found" });
   res.json(updated);

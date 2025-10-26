@@ -36,7 +36,7 @@ export const createTeamsEvent = async (req: Request, res: Response) => {
   // Filter eligible users: permission USER and pool_year === '2025'
   const eligible = [] as typeof users;
   for (const u of users) {
-    if (u.permission === UserPermission.USER && u.pool_year === "2025") {
+    if (u.permission === UserPermission.USER && u.pool_year === "2024") {
       // skip if already member of a team
       // getTeamByMember returns Team | null
       // we don't await here yet; we'll filter below to keep sequential checks

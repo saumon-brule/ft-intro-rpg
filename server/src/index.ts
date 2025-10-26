@@ -10,6 +10,8 @@ import guildsRouter from "./routes/guilds";
 import teamsRouter from "./routes/teams";
 import eventsRouter from "./routes/events";
 import questsRouter from "./routes/quests";
+import activeQuestsRouter from "./routes/activeQuests";
+import adminRouter from "./routes/admin";
 
 configDotenv({ quiet: true });
 
@@ -48,6 +50,10 @@ apiRouter.use("/teams", teamsRouter);
 apiRouter.use("/event", eventsRouter);
 // Quests routes (admin for mutate endpoints)
 apiRouter.use("/quests", questsRouter);
+// Active quests routes
+apiRouter.use("/active-quests", activeQuestsRouter);
+// Admin routes (debug)
+apiRouter.use("/debug", adminRouter);
 
 expressApp.use("/api", apiRouter);
 
