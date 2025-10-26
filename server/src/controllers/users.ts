@@ -10,7 +10,7 @@ export const getMe = async (req: AuthenticatedRequest, res: Response) => {
 	try {
 		const team = await db.getTeamByMember(user.id);
 		const teamId = team ? team.id : null;
-		res.json({ ...user, teamId });
+		res.json({ ...user, team_id: teamId });
 	} catch (err) {
 		console.error("Failed to fetch team for user:", err);
 		res.status(500).json({ error: "Failed to fetch user team" });
