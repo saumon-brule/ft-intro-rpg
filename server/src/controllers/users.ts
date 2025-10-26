@@ -3,7 +3,18 @@ import { AuthenticatedRequest } from "../middlewares/auth";
 import { db } from "../db/database";
 
 export const getMe = async (req: AuthenticatedRequest, res: Response) => {
-	res.json(req.user);
+	// Try to find the team for the current user; if none, return null
+	const user = req.user;
+	if (!user) return res.status(401).json({ error: "Not authenticated" });
+
+	try {
+		const team = await db.getTeamByMember(user.id);
+		const teamId = team ? team.id : null;
+		res.json({ ...user, teamId });
+	} catch (err) {
+		console.error("Failed to fetch team for user:", err);
+		res.status(500).json({ error: "Failed to fetch user team" });
+	}
 };
 
 export const getAllUsers = async (req: AuthenticatedRequest, res: Response) => {
