@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import { type User } from "../structures/usersMeSchema";
+import { type User } from "../structures/schemas/usersMeSchema";
 
 type UserState = User & { loggedIn: boolean };
 

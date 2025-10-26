@@ -22,7 +22,7 @@ export default function Router() {
 			children: [
 				{
 					index: true,
-					element: <Navigate to={!user.loggedIn ? "/login" : user.permission === 0 ? "/play" : user.permission === 1 ? "/quest" : "/admin"} replace />
+					element: <Navigate to={!user.loggedIn ? "/login" : user.roles.includes("admin") ? "/admin" : user.roles.includes("pnj") ? "/quest" : "/play"} replace />
 				},
 				{
 					path: "login",
@@ -30,7 +30,7 @@ export default function Router() {
 				},
 				{
 					path: "admin",
-					element: user.loggedIn ? <RequireRole role={2} fallback={<Error404 />} /> : <Navigate to="/login" replace />,
+					element: user.loggedIn ? <RequireRole role={"admin"} fallback={<Error404 />} /> : <Navigate to="/login" replace />,
 					children: [
 						{
 							index: true,
@@ -40,7 +40,7 @@ export default function Router() {
 				},
 				{
 					path: "play",
-					element: user.loggedIn ? <Play /> : <Navigate to="/login" />
+					element: user.loggedIn ? <Play /> : <Navigate to="/login" replace />
 				}
 			]
 		}

@@ -20,7 +20,7 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
-      "indent": ["error", "tab"],
+      "indent": ["error", "tab", { "SwitchCase": 1 }],
       "semi": ["error", "always"],
       "no-trailing-spaces": "error",
       "eol-last": ["error", "always"],
