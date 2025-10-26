@@ -75,6 +75,48 @@ export interface TeamMember {
 	joined_at?: string;
 }
 
+export interface Quest {
+	id: number;
+	name: string;
+	place: string;
+	clue: string;
+	lore: string;
+	time_limit: number;
+	xp: number;
+	pnj_id?: number | null;
+	created_at?: string;
+	updated_at?: string;
+}
+
+export interface QuestInsert {
+	name: string;
+	place: string;
+	clue: string;
+	lore: string;
+	time_limit: number;
+	xp: number;
+	pnj_id?: number | null;
+}
+
+export interface ActiveQuest {
+	id: number;
+	quest_id: number;
+	team_id: number;
+	ends_at: string; // ISO datetime string
+	status: "in_progress" | "finished";
+	validated: boolean;
+	created_at?: string;
+	updated_at?: string;
+}
+
+export interface ActiveQuestInsert {
+	quest_id: number;
+	team_id: number;
+	ends_at: string; // precise end datetime
+	status?: "in_progress" | "finished";
+	validated?: boolean;
+}
+
 class Database {
 	private db: sqlite3.Database;
 
@@ -181,6 +223,56 @@ class Database {
 					console.error("Error creating team_members table:", err);
 				} else {
 					console.log("Team members table is ready");
+				}
+			});
+
+			// Create quests table
+			const createQuestsTable = `
+				CREATE TABLE IF NOT EXISTS quests (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					name TEXT NOT NULL,
+					place TEXT NOT NULL,
+					clue TEXT NOT NULL,
+					lore TEXT NOT NULL,
+					time_limit INTEGER NOT NULL,
+					xp INTEGER NOT NULL,
+					pnj_id INTEGER,
+					created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+					updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+					FOREIGN KEY (pnj_id) REFERENCES users(id) ON DELETE SET NULL
+				)
+			`;
+
+			this.db.run(createQuestsTable, (err) => {
+				if (err) {
+					console.error("Error creating quests table:", err);
+				} else {
+					console.log("Quests table is ready");
+				}
+			});
+
+			// Create active_quests table to track quests in progress
+			const createActiveQuestsTable = `
+				CREATE TABLE IF NOT EXISTS active_quests (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					quest_id INTEGER NOT NULL,
+					team_id INTEGER NOT NULL,
+					ends_at DATETIME NOT NULL,
+					status TEXT NOT NULL DEFAULT 'in_progress',
+					validated INTEGER DEFAULT 0,
+					created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+					updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+					FOREIGN KEY (quest_id) REFERENCES quests(id) ON DELETE CASCADE,
+					FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+					CHECK(status IN ('in_progress','finished'))
+				)
+			`;
+
+			this.db.run(createActiveQuestsTable, (err) => {
+				if (err) {
+					console.error("Error creating active_quests table:", err);
+				} else {
+					console.log("Active quests table is ready");
 				}
 			});
 
@@ -648,6 +740,155 @@ class Database {
 		});
 	}
 
+	// ===== QUEST METHODS =====
+
+	async getAllQuests(): Promise<Quest[]> {
+		const query = "SELECT * FROM quests";
+		return new Promise((resolve, reject) => {
+			this.db.all(query, [], (err, rows: Quest[]) => {
+				if (err) return reject(err);
+				resolve(rows || []);
+			});
+		});
+	}
+
+	async getQuestById(id: number): Promise<Quest | null> {
+		const query = "SELECT * FROM quests WHERE id = ?";
+		return new Promise((resolve, reject) => {
+			this.db.get(query, [id], (err, row: Quest | undefined) => {
+				if (err) return reject(err);
+				resolve(row || null);
+			});
+		});
+	}
+
+	async createQuest(q: QuestInsert): Promise<Quest> {
+		const query = `INSERT INTO quests (name, place, clue, lore, time_limit, xp, pnj_id) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+		return new Promise((resolve, reject) => {
+			this.db.run(query, [q.name, q.place, q.clue, q.lore, q.time_limit, q.xp, q.pnj_id ?? null], function(err) {
+				if (err) return reject(err);
+				db.getQuestById(this.lastID).then(resQ => resQ ? resolve(resQ) : reject(new Error('Failed to fetch created quest'))).catch(reject);
+			});
+		});
+	}
+
+	async updateQuest(id: number, q: Partial<QuestInsert>): Promise<Quest | null> {
+		const updates: string[] = [];
+		const values: any[] = [];
+		if (q.name !== undefined) { updates.push('name = ?'); values.push(q.name); }
+		if (q.place !== undefined) { updates.push('place = ?'); values.push(q.place); }
+		if (q.clue !== undefined) { updates.push('clue = ?'); values.push(q.clue); }
+		if (q.lore !== undefined) { updates.push('lore = ?'); values.push(q.lore); }
+		if (q.time_limit !== undefined) { updates.push('time_limit = ?'); values.push(q.time_limit); }
+		if (q.xp !== undefined) { updates.push('xp = ?'); values.push(q.xp); }
+		if (q.pnj_id !== undefined) { updates.push('pnj_id = ?'); values.push(q.pnj_id); }
+
+		if (updates.length === 0) return this.getQuestById(id);
+		updates.push('updated_at = CURRENT_TIMESTAMP'); values.push(id);
+		const query = `UPDATE quests SET ${updates.join(', ')} WHERE id = ?`;
+		return new Promise((resolve, reject) => {
+			this.db.run(query, values, (err) => {
+				if (err) return reject(err);
+				this.getQuestById(id).then(resolve).catch(reject);
+			});
+		});
+	}
+
+	async deleteQuest(id: number): Promise<boolean> {
+		const query = 'DELETE FROM quests WHERE id = ?';
+		return new Promise((resolve, reject) => {
+			this.db.run(query, [id], function(err) {
+				if (err) return reject(err);
+				resolve(this.changes > 0);
+			});
+		});
+	}
+
+	// ===== ACTIVE QUESTS =====
+
+	async getAllActiveQuests(): Promise<ActiveQuest[]> {
+		const query = "SELECT * FROM active_quests";
+		return new Promise((resolve, reject) => {
+			this.db.all(query, [], (err, rows: ActiveQuest[]) => {
+				if (err) return reject(err);
+				resolve(rows || []);
+			});
+		});
+	}
+
+	async getActiveQuestById(id: number): Promise<ActiveQuest | null> {
+		const query = "SELECT * FROM active_quests WHERE id = ?";
+		return new Promise((resolve, reject) => {
+			this.db.get(query, [id], (err, row: ActiveQuest | undefined) => {
+				if (err) return reject(err);
+				resolve(row || null);
+			});
+		});
+	}
+
+	async createActiveQuest(aq: ActiveQuestInsert): Promise<ActiveQuest> {
+		const status = aq.status ?? 'in_progress';
+		const validated = aq.validated ? 1 : 0;
+		const query = `INSERT INTO active_quests (quest_id, team_id, ends_at, status, validated) VALUES (?, ?, ?, ?, ?)`;
+		return new Promise((resolve, reject) => {
+			this.db.run(query, [aq.quest_id, aq.team_id, aq.ends_at, status, validated], function(err) {
+				if (err) return reject(err);
+				db.getActiveQuestById(this.lastID).then(resQ => resQ ? resolve(resQ) : reject(new Error('Failed to fetch created active quest'))).catch(reject);
+			});
+		});
+	}
+
+	async updateActiveQuest(id: number, a: Partial<ActiveQuestInsert> & { validated?: boolean }): Promise<ActiveQuest | null> {
+		const updates: string[] = [];
+		const values: any[] = [];
+		if (a.quest_id !== undefined) { updates.push('quest_id = ?'); values.push(a.quest_id); }
+		if (a.team_id !== undefined) { updates.push('team_id = ?'); values.push(a.team_id); }
+		if (a.ends_at !== undefined) { updates.push('ends_at = ?'); values.push(a.ends_at); }
+		if (a.status !== undefined) { updates.push('status = ?'); values.push(a.status); }
+		if (a.validated !== undefined) { updates.push('validated = ?'); values.push(a.validated ? 1 : 0); }
+
+		if (updates.length === 0) return this.getActiveQuestById(id);
+		updates.push('updated_at = CURRENT_TIMESTAMP');
+		values.push(id);
+		const query = `UPDATE active_quests SET ${updates.join(', ')} WHERE id = ?`;
+		return new Promise((resolve, reject) => {
+			this.db.run(query, values, (err) => {
+				if (err) return reject(err);
+				this.getActiveQuestById(id).then(resolve).catch(reject);
+			});
+		});
+	}
+
+	async deleteActiveQuest(id: number): Promise<boolean> {
+		const query = 'DELETE FROM active_quests WHERE id = ?';
+		return new Promise((resolve, reject) => {
+			this.db.run(query, [id], function(err) {
+				if (err) return reject(err);
+				resolve(this.changes > 0);
+			});
+		});
+	}
+
+	async getActiveQuestsByTeam(teamId: number): Promise<ActiveQuest[]> {
+		const query = 'SELECT * FROM active_quests WHERE team_id = ?';
+		return new Promise((resolve, reject) => {
+			this.db.all(query, [teamId], (err, rows: ActiveQuest[]) => {
+				if (err) return reject(err);
+				resolve(rows || []);
+			});
+		});
+	}
+
+	async getActiveQuestsByQuestId(questId: number): Promise<ActiveQuest[]> {
+		const query = 'SELECT * FROM active_quests WHERE quest_id = ?';
+		return new Promise((resolve, reject) => {
+			this.db.all(query, [questId], (err, rows: ActiveQuest[]) => {
+				if (err) return reject(err);
+				resolve(rows || []);
+			});
+		});
+	}
+
 	close() {
 		this.db.close((err) => {
 			if (err) {
@@ -658,6 +899,7 @@ class Database {
 		});
 	}
 }
+
 
 // Export a singleton instance
 export const db = new Database();

@@ -8,6 +8,8 @@ import { verifyToken } from "./middlewares/auth";
 import { errorHandler } from "./middlewares/validation";
 import guildsRouter from "./routes/guilds";
 import teamsRouter from "./routes/teams";
+import eventsRouter from "./routes/events";
+import questsRouter from "./routes/quests";
 
 configDotenv({ quiet: true });
 
@@ -42,6 +44,10 @@ apiRouter.use("/users", verifyToken, userRouter);
 apiRouter.use("/guilds", guildsRouter);
 // Team routes (requires authentication, verified in each route)
 apiRouter.use("/teams", teamsRouter);
+// Events routes (admin)
+apiRouter.use("/event", eventsRouter);
+// Quests routes (admin for mutate endpoints)
+apiRouter.use("/quests", questsRouter);
 
 expressApp.use("/api", apiRouter);
 
