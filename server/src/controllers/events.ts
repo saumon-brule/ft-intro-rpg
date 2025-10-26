@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { db, UserPermission } from "../db/database";
+import { broadcastAdminMessage, getUserSocketIds, getIo } from "../socket";
 
 function shuffle<T>(array: T[]) {
   let currentIndex = array.length;
@@ -136,4 +137,32 @@ export const createTeamsEvent = async (req: Request, res: Response) => {
   }
 
   return res.json({ created: createdTeams.length, teams: createdTeams });
+};
+
+// Broadcast a message to all connected sockets (admin)
+export const broadcastMessage = async (req: Request, res: Response) => {
+  const { message } = req.body as any;
+  if (typeof message !== "string") return res.status(400).json({ error: "message must be a string" });
+  broadcastAdminMessage(String(message));
+  res.status(204).send();
+};
+
+// Broadcast a message to a specific user (admin)
+export const broadcastToUser = async (req: Request, res: Response) => {
+  const id = (req.params as any).idParsed ?? Number(req.params.id);
+  if (!id || isNaN(Number(id))) return res.status(400).json({ error: "Invalid user id" });
+  const { message } = req.body as any;
+  if (typeof message !== "string") return res.status(400).json({ error: "message must be a string" });
+
+  const socketIds = getUserSocketIds(Number(id));
+  if (!socketIds || socketIds.length === 0) {
+    return res.status(404).json({ error: "User not connected" });
+  }
+
+  const io = getIo();
+  for (const sid of socketIds) {
+    io.to(sid).emit("admin:message", { message: String(message), ts: new Date().toISOString() });
+  }
+
+  res.status(204).send();
 };

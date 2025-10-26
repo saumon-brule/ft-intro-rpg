@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { db, UserPermission } from "../db/database";
+import { getUserSocketIds, getIo } from "../socket";
 
 // Assign a quest to a team (admin only)
 export const assignQuestToTeam = async (req: Request, res: Response) => {
@@ -64,7 +65,45 @@ export const finishActiveQuest = async (req: Request, res: Response) => {
   }
 
   const updated = await db.updateActiveQuest(active.id, { status: "finished", validated: isValidated });
-  res.json(updated);
+  // After finishing, attempt to assign a new random quest to the same team
+  // Gather quest ids already taken by this team
+  const teamActiveAll = await db.getActiveQuestsByTeam(tId);
+  const doneQuestIds = new Set(teamActiveAll.map(a => a.quest_id));
+
+  // Get all quests and filter those not done by the team
+  const allQuests = await db.getAllQuests();
+  const candidates = allQuests.filter(q => !doneQuestIds.has(q.id));
+
+  let newAssigned = null as null | { active_quest: any; quest: any; team: any; members: any[] };
+
+  if (candidates.length > 0) {
+    // pick random quest
+    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    const endsAt = new Date(Date.now() + (pick.time_limit || 0) * 60 * 1000).toISOString();
+    const newActive = await db.createActiveQuest({ quest_id: pick.id, team_id: tId, ends_at: endsAt });
+
+    const team = await db.getTeamById(tId);
+    const members = await db.getTeamMembers(tId);
+    const users = await Promise.all(members.map((m) => db.findUserById(m.user_id)));
+
+    newAssigned = {
+      active_quest: newActive,
+      quest: pick,
+      team: team,
+      members: users.filter(Boolean)
+    };
+
+    // Notify all team members over websocket with same shape as /me
+	console.log(users);
+    const socketIds = ([] as string[]).concat(...users.filter(Boolean).map(u => getUserSocketIds(u!.id)));
+    const io = getIo();
+    for (const sid of socketIds) {
+		console.log("send to : ", sid);
+      io.to(sid).emit("active_quest:assigned", newAssigned);
+    }
+  }
+
+  res.json({ finished: updated, new_active: newAssigned });
 };
 
 // List teams on a quest, with optional status filter (in_progress, finished, all)
