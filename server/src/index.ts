@@ -2,6 +2,8 @@ import { FtApp } from "@saumon-brule/ft.js";
 import { configDotenv } from "dotenv";
 import express from "express";
 import cookieParser from "cookie-parser";
+import http from "http";
+import { initSocket } from "./socket";
 import { createAuthRouter } from "./routes/auth";
 import { createUserRouter } from "./routes/users";
 import { verifyToken } from "./middlewares/auth";
@@ -60,7 +62,10 @@ expressApp.use("/api", apiRouter);
 // Global error handler (must be after all routes)
 expressApp.use(errorHandler);
 
+// Create HTTP server and attach socket.io
+const server = http.createServer(expressApp);
+initSocket(server);
 
-expressApp.listen(port, hostname, () => {
+server.listen(port, hostname, () => {
 	console.log(`Server started on ${protocol}://${hostname}:${port}`);
 });

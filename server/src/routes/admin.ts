@@ -11,6 +11,3 @@ router.use(requireAdmin);
 router.get("/get-token/:id", validateNumericParam("id"), asyncHandler(getTokenForUser));
 
 export default router;
-
-
-// eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiaWF0IjoxNzYxNDg4NDYyLCJleHAiOjE3NjE1NzQ4NjJ9.ulkUOz0BPKs1BUKHgB8fYi1t68SBK9XEdRba80-KsV8
