@@ -1,0 +1,38 @@
+
+#profile-button {
+	position: relative;
+	width: 100px;
+	height: 100px;
+	border: none;
+	border-radius: 1rem;
+	background-image: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), var(--profile-picture);
+	background-size: cover;
+	background-position: center;
+}
+
+#profile-button::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: 10px;
+	padding: 3px;
+	background: url("/images/profile-paper-texture.webp") no-repeat center/cover;
+	opacity: 30%;
+	pointer-events: none;
+	z-index: 1;
+}
+
+#profile-button::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: 10px;
+	padding: 3px;
+	background: linear-gradient(45deg, #ccc, #fff, #999, #eee);
+	mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+	-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+	-webkit-mask-composite: destination-out;
+	mask-composite: exclude;
+	pointer-events: none;
+	z-index: 2;
+}

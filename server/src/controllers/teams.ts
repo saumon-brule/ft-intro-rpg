@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
-import { db, Team } from "../db/database";
-import { AuthenticatedRequest } from "../middlewares/auth";
+import { db, Guild, Team, TeamMember } from "../db/database";
 
 export const getAllTeams = async (req: Request, res: Response) => {
   const teams = await db.getAllTeams();
@@ -17,5 +16,19 @@ export const getTeam = async (req: Request, res: Response) => {
   // augment with members
   const members = await db.getTeamMembers(id);
 
-  res.json({ ...team, members });
+  // fetch full guild info instead of returning guild_id
+  const guild = await db.getGuildById(team.guild_id);
+
+  if (!guild) throw new Error("Pas de guild");
+
+  const out: any = {
+    id: team.id,
+    guild: guild,
+    xp: team.xp,
+    created_at: team.created_at,
+    updated_at: team.updated_at,
+    members
+  };
+
+  res.json(out);
 };

@@ -8,6 +8,7 @@ export const usersMeSchema = z.object({
 	pool_month: z.string(),
 	pool_year: z.string(),
 	permission: z.number(),
+	team_id: z.number().nullable(),
 	created_at: z.any(),
 	updated_at: z.any()
 }).transform((data) => {
@@ -30,7 +31,8 @@ export const usersMeSchema = z.object({
 		id: data.id,
 		login: data.login,
 		image: data.image,
-		roles: roles
+		roles: roles,
+		teamId: data.team_id
 	};
 });
 

@@ -19,8 +19,11 @@
 	pointer-events: auto;
 }
 
+
+
 .play-page {
-	background: url("images/app-background.jpg");
+	background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("images/app-background.jpg");
 	background-size: cover;
 	background-position: center;
+	font-family: "Uncial Antiqua", system;
 }

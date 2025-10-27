@@ -8,6 +8,7 @@ const initialState: UserState = {
 	login: "",
 	image: "",
 	roles: [],
+	teamId: null,
 	loggedIn: false
 };
 
@@ -15,24 +16,14 @@ const userSlice = createSlice({
 	name: "user",
 	initialState,
 	reducers: {
-		login(state, action: PayloadAction<User>) {
-			state.id = action.payload.id;
-			state.login = action.payload.login;
-			state.image = action.payload.image;
-			state.roles = [...action.payload.roles];
-			state.loggedIn = true;
-		},
-		logout(state) {
+		login: (_, action: PayloadAction<User>) => ({ ...structuredClone(action.payload), loggedIn: true }),
+		logout() {
 			fetch("/api/auth/logout", { method: "POST" })
 				.then((response) => {
 					if (!response.ok) throw new Error("suicide toi en vrai");
 				})
 				.catch(console.error);
-			state.id = -1;
-			state.login = "";
-			state.image = "";
-			state.roles = [];
-			state.loggedIn = false;
+			return initialState;
 		}
 	}
 });
