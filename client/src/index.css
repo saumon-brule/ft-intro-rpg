@@ -9,7 +9,7 @@
 
 	color-scheme: light dark;
 	color: rgba(255, 255, 255, 0.87);
-	background-color: #242424;
+	/* background-color: #242424; */
 
 	font-synthesis: none;
 	text-rendering: optimizeLegibility;
@@ -19,4 +19,15 @@
 
 body {
 	margin: 0;
+}
+
+button {
+	background: none;
+	border: none;
+	padding: 0;
+	margin: 0;
+	font: inherit;
+	color: inherit;
+	cursor: pointer;
+	outline: none;
 }
