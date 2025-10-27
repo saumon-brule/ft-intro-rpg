@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { db, UserPermission } from "../db/database";
 import { getUserSocketIds, getIo } from "../socket";
+import { scheduleActiveQuest } from "../activeQuestScheduler";
+import { assignNextQuestForTeam } from "../activeQuestProcessor";
 
 // Assign a quest to a team (admin only)
 export const assignQuestToTeam = async (req: Request, res: Response) => {
@@ -26,6 +28,8 @@ export const assignQuestToTeam = async (req: Request, res: Response) => {
   const endsAt = new Date(Date.now() + (quest.time_limit || 0) * 60 * 1000).toISOString();
 
   const active = await db.createActiveQuest({ quest_id: qId, team_id: tId, ends_at: endsAt });
+  // schedule automatic expiration handling
+  scheduleActiveQuest(active).catch(() => {});
   res.status(201).json(active);
 };
 
@@ -65,43 +69,8 @@ export const finishActiveQuest = async (req: Request, res: Response) => {
   }
 
   const updated = await db.updateActiveQuest(active.id, { status: "finished", validated: isValidated });
-  // After finishing, attempt to assign a new random quest to the same team
-  // Gather quest ids already taken by this team
-  const teamActiveAll = await db.getActiveQuestsByTeam(tId);
-  const doneQuestIds = new Set(teamActiveAll.map(a => a.quest_id));
-
-  // Get all quests and filter those not done by the team
-  const allQuests = await db.getAllQuests();
-  const candidates = allQuests.filter(q => !doneQuestIds.has(q.id));
-
-  let newAssigned = null as null | { active_quest: any; quest: any; team: any; members: any[] };
-
-  if (candidates.length > 0) {
-    // pick random quest
-    const pick = candidates[Math.floor(Math.random() * candidates.length)];
-    const endsAt = new Date(Date.now() + (pick.time_limit || 0) * 60 * 1000).toISOString();
-    const newActive = await db.createActiveQuest({ quest_id: pick.id, team_id: tId, ends_at: endsAt });
-
-    const team = await db.getTeamById(tId);
-    const members = await db.getTeamMembers(tId);
-    const users = await Promise.all(members.map((m) => db.findUserById(m.user_id)));
-
-    newAssigned = {
-      active_quest: newActive,
-      quest: pick,
-      team: team,
-      members: users.filter(Boolean)
-    };
-
-    // Notify all team members over websocket with same shape as /me
-	console.log(users);
-    const socketIds = ([] as string[]).concat(...users.filter(Boolean).map(u => getUserSocketIds(u!.id)));
-    const io = getIo();
-    for (const sid of socketIds) {
-		console.log("send to : ", sid);
-      io.to(sid).emit("active_quest:assigned", newAssigned);
-    }
-  }
+  // After finishing, try to assign the next quest using shared helper
+  const newAssigned = await assignNextQuestForTeam(tId);
 
   res.json({ finished: updated, new_active: newAssigned });
 };
@@ -152,8 +121,20 @@ export const getMyActiveQuests = async (req: Request, res: Response) => {
   let activeList = await db.getActiveQuestsByTeam(team.id);
   const active = activeList.find((a) => a.status === "in_progress");
 
-  if (!active) return res.json(null);
+  // No active quest in progress: compute whether the game is finished for this team
+  const teamActiveAll = await db.getActiveQuestsByTeam(team.id);
+  const doneQuestIds = new Set(teamActiveAll.map(a => a.quest_id));
+  const allQuests = await db.getAllQuests();
+  const candidates = allQuests.filter(q => !doneQuestIds.has(q.id));
 
+  if (!active) {
+    const members = await db.getTeamMembers(team.id);
+    const users = await Promise.all(members.map((m) => db.findUserById(m.user_id)));
+    if (candidates.length === 0) {
+      return res.json({ active_quest: null, quest: null, team, members: users.filter(Boolean), status: "finished", remaining: 0 });
+    }
+    return res.json({ active_quest: null, quest: null, team, members: users.filter(Boolean), status: "waiting", remaining: candidates.length });
+  }
   const quest = await db.getQuestById(active.quest_id);
   const members = await db.getTeamMembers(active.team_id);
   const users = await Promise.all(members.map((m) => db.findUserById(m.user_id)));
@@ -166,4 +147,29 @@ export const getMyActiveQuests = async (req: Request, res: Response) => {
   };
 
   res.json(result);
+};
+
+// Process expired active quests (to be called by a periodic scheduler).
+// For each active quest whose ends_at <= now and status is in_progress,
+// mark it finished with validated = false, then try to assign a new random quest
+// to the same team (same logic as manual finish handler).
+export const processExpiredActiveQuests = async () => {
+  try {
+    const now = new Date();
+    const allActive = await db.getAllActiveQuests();
+    const expired = allActive.filter(a => a.status === "in_progress" && new Date(a.ends_at) <= now);
+
+    for (const active of expired) {
+      try {
+        // Close it and set validated = false
+        await db.updateActiveQuest(active.id, { status: "finished", validated: false });
+        const tId = active.team_id;
+        await assignNextQuestForTeam(tId);
+      } catch (err) {
+        console.error("Error processing expired active quest", active.id, err);
+      }
+    }
+  } catch (err) {
+    console.error("Error in processExpiredActiveQuests", err);
+  }
 };
