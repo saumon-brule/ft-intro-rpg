@@ -4,6 +4,8 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import http from "http";
 import { initSocket } from "./socket";
+import { processExpiredActiveQuests } from "./activeQuestProcessor";
+import { scheduleAllActiveQuests } from "./activeQuestScheduler";
 import { createAuthRouter } from "./routes/auth";
 import { createUserRouter } from "./routes/users";
 import { verifyToken } from "./middlewares/auth";
@@ -65,6 +67,18 @@ expressApp.use(errorHandler);
 // Create HTTP server and attach socket.io
 const server = http.createServer(expressApp);
 initSocket(server);
+
+// Start a periodic job to process expired active quests every 60 seconds (fallback)
+// and run it once at startup. Also schedule in-memory timeouts for current active quests.
+const EXPIRATION_POLL_MS = 60 * 1000;
+setTimeout(() => {
+	processExpiredActiveQuests().catch(err => console.error("Initial expired quest processing failed", err));
+	// schedule all current in-progress active quests
+	scheduleAllActiveQuests().catch(err => console.error("Failed to schedule active quests at startup", err));
+}, 1000);
+setInterval(() => {
+	processExpiredActiveQuests().catch(err => console.error("Periodic expired quest processing failed", err));
+}, EXPIRATION_POLL_MS);
 
 server.listen(port, hostname, () => {
 	console.log(`Server started on ${protocol}://${hostname}:${port}`);
