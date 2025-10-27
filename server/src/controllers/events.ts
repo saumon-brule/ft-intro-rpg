@@ -1,6 +1,9 @@
 import { Request, Response } from "express";
 import { db, UserPermission } from "../db/database";
 import { broadcastAdminMessage, getUserSocketIds, getIo } from "../socket";
+import { assignNextQuestForTeam } from "../activeQuestProcessor";
+import { setEventState } from "../eventState";
+import { cancelActiveQuest } from "../activeQuestScheduler";
 
 function shuffle<T>(array: T[]) {
   let currentIndex = array.length;
@@ -137,6 +140,67 @@ export const createTeamsEvent = async (req: Request, res: Response) => {
   }
 
   return res.json({ created: createdTeams.length, teams: createdTeams });
+};
+
+// Start the event: set state to 'started' and assign a quest to every team (if none in progress)
+export const startEvent = async (req: Request, res: Response) => {
+  // set global state
+  setEventState("started");
+
+  const teams = await db.getAllTeams();
+  const summary: Array<{ teamId: number; assigned: boolean; note?: string }> = [];
+
+  for (const t of teams) {
+    // skip if team already has in_progress quest
+    const actives = await db.getActiveQuestsByTeam(t.id);
+    if (actives.find(a => a.status === "in_progress")) {
+      summary.push({ teamId: t.id, assigned: false, note: "already has active quest" });
+      continue;
+    }
+
+    try {
+      const assigned = await assignNextQuestForTeam(t.id);
+      summary.push({ teamId: t.id, assigned: !!assigned, note: assigned ? undefined : "no candidate" });
+    } catch (err) {
+      summary.push({ teamId: t.id, assigned: false, note: String(err) });
+    }
+  }
+
+  res.json({ started: true, summary });
+};
+
+// Finish the event: mark global state finished, close all in_progress active quests
+// (set status=finished, validated=false), cancel scheduled timeouts and notify all players
+export const finishEvent = async (req: Request, res: Response) => {
+  setEventState("finished");
+
+  try {
+    const allActive = await db.getAllActiveQuests();
+    const inProgress = allActive.filter(a => a.status === "in_progress");
+
+    for (const a of inProgress) {
+      try {
+        await db.updateActiveQuest(a.id, { status: "finished", validated: false });
+        // cancel any scheduled timeout
+        try {
+          cancelActiveQuest(a.id);
+        } catch (e) {
+          // ignore
+        }
+      } catch (err) {
+        console.error("Failed to finish active quest", a.id, err);
+      }
+    }
+
+    // Notify all connected sockets that event is finished
+    const io = getIo();
+    io.emit("active_quest:status", { status: "finished", message: "Event finished" });
+
+    return res.json({ finished: true, closed: inProgress.length });
+  } catch (err) {
+    console.error("Error finishing event", err);
+    return res.status(500).json({ error: "Failed to finish event" });
+  }
 };
 
 // Broadcast a message to all connected sockets (admin)

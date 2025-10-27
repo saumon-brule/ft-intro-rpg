@@ -9,7 +9,7 @@ const router = express.Router();
 router.post("/assign", requireAdmin, validateBody(["quest_id", "team_id"]), asyncHandler(assignQuestToTeam));
 
 // Finish a quest (PNJ referent or admin)
-router.post("/finish", requireAuth, validateBody(["quest_id", "team_id", "validated"]), asyncHandler(finishActiveQuest));
+router.patch("/finish", requireAuth, validateBody(["quest_id", "team_id", "validated"]), asyncHandler(finishActiveQuest));
 
 // List teams for a quest with status filter
 router.get("/quest/:id", validateNumericParam("id"), asyncHandler(listTeamsOnQuest));

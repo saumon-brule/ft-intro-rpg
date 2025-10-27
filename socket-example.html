@@ -14,6 +14,7 @@
 	socket.on("connect", () => console.log("connected", socket.id));
 	socket.on("admin:message", (data) => console.log("admin message:", data));
 	socket.on("active_quest:assigned", (data) => console.log("quest:", data));
+	socket.on("active_quest:status", (data) => console.log("quest status:", data));
 	</script>
 </body>
 </html>

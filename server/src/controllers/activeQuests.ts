@@ -3,6 +3,7 @@ import { db, UserPermission } from "../db/database";
 import { getUserSocketIds, getIo } from "../socket";
 import { scheduleActiveQuest } from "../activeQuestScheduler";
 import { assignNextQuestForTeam } from "../activeQuestProcessor";
+import { getEventState } from "../eventState";
 
 // Assign a quest to a team (admin only)
 export const assignQuestToTeam = async (req: Request, res: Response) => {
@@ -69,6 +70,14 @@ export const finishActiveQuest = async (req: Request, res: Response) => {
   }
 
   const updated = await db.updateActiveQuest(active.id, { status: "finished", validated: isValidated });
+  // If validated true, award quest XP to the team
+  try {
+    if (isValidated) {
+      await db.addTeamXp(tId, quest.xp || 0);
+    }
+  } catch (err) {
+    console.error("Failed to add XP to team", tId, err);
+  }
   // After finishing, try to assign the next quest using shared helper
   const newAssigned = await assignNextQuestForTeam(tId);
 
@@ -130,9 +139,18 @@ export const getMyActiveQuests = async (req: Request, res: Response) => {
   if (!active) {
     const members = await db.getTeamMembers(team.id);
     const users = await Promise.all(members.map((m) => db.findUserById(m.user_id)));
+
+    const state = getEventState();
+
+    if (state === "idle") {
+      return res.json({ active_quest: null, quest: null, team, members: users.filter(Boolean), status: "idle", remaining: candidates.length });
+    }
+
     if (candidates.length === 0) {
       return res.json({ active_quest: null, quest: null, team, members: users.filter(Boolean), status: "finished", remaining: 0 });
     }
+
+    // event started but team has no active quest yet
     return res.json({ active_quest: null, quest: null, team, members: users.filter(Boolean), status: "waiting", remaining: candidates.length });
   }
   const quest = await db.getQuestById(active.quest_id);
