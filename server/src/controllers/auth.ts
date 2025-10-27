@@ -63,3 +63,13 @@ export const authCallback = (req: AuthenticatedRequest, res: Response) => {
 		}
 	});
 };
+
+export const logout = async (req: Request, res: Response) => {
+	res.cookie("token", "kys", {
+		httpOnly: true,
+		secure: true,
+		sameSite: "strict",
+		maxAge: 0
+	});
+	res.status(204).json("Bro y'a vraiment rien a voir quoi");
+};

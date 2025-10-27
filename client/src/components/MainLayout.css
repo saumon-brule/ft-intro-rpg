@@ -18,3 +18,9 @@
 #overlay>* {
 	pointer-events: auto;
 }
+
+.play-page {
+	background: url("images/app-background.jpg");
+	background-size: cover;
+	background-position: center;
+}

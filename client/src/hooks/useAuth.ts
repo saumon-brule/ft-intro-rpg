@@ -1,7 +1,7 @@
 import { useDispatch } from "react-redux";
 import { useEffect, useState } from "react";
 import { type AppDispatch } from "../store";
-import { login, logout } from "../slices/userSlice";
+import { login } from "../slices/userSlice";
 import { usersMeSchema } from "../structures/schemas/usersMeSchema";
 import { FetchError } from "../structures/FetchError";
 
@@ -20,9 +20,7 @@ export function useAuth() {
 					throw new FetchError(`HTTP Error: ${response.status}`, response.status);
 				}
 				if (!response.ok) {
-					console.log(response);
 					if (response.status === 401) {
-						dispatch(logout());
 						return;
 					}
 					throw new FetchError(data?.error ?? `HTTP Error: ${response.status}`, response.status);

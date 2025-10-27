@@ -41,7 +41,7 @@ export default function Router() {
 					children: [
 						{
 							path: "login",
-							element: !user.loggedIn ? <Login /> : <Navigate to="/login" replace />
+							element: !user.loggedIn ? <Login /> : <Navigate to="/" replace />
 						},
 						{
 							path: "admin",
