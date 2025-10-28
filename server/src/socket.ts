@@ -11,94 +11,95 @@ let io: IOServer | null = null;
 const userSockets: Map<number, Set<string>> = new Map();
 
 export function initSocket(server: http.Server) {
-  if (io) return io;
+	if (io) return io;
 
-  server.on("request", (req, res) => {});
+	server.on("request", (req, res) => { });
 
-  const port = process.env.FRONT_PORT ? parseInt(process.env.FRONT_PORT) : 3000;
-  const protocol = process.env.FRONT_PROTOCOL ?? "http";
-  const hostname = process.env.FRONT_HOSTNAME ?? "localhost";
-  io = new IOServer(server, {
-    cors: {
-      origin: `${protocol}://${hostname}:${port}`,
-      methods: ["GET", "POST"],
-      credentials: true
-    }
-  });
+	const port = process.env.FRONT_PORT ? parseInt(process.env.FRONT_PORT) : 3000;
+	const protocol = process.env.FRONT_PROTOCOL ?? "http";
+	const hostname = process.env.FRONT_HOSTNAME ?? "localhost";
+	io = new IOServer(server, {
+		path: "/ws",
+		cors: {
+			origin: `${protocol}://${hostname}:${port}`,
+			methods: ["GET", "POST"],
+			credentials: true
+		}
+	});
 
-  io.on("connection", async (socket: Socket) => {
-    try {
-      // Try token from handshake.auth first (explicit client-sent token)
-      let token = socket.handshake.auth?.token as string | undefined;
+	io.on("connection", async (socket: Socket) => {
+		try {
+			// Try token from handshake.auth first (explicit client-sent token)
+			let token = socket.handshake.auth?.token as string | undefined;
 
-      // If not present, try to read httpOnly cookie named 'token' from headers
-      if (!token && socket.handshake.headers && socket.handshake.headers.cookie) {
-        const raw = socket.handshake.headers.cookie as string;
-        // simple cookie parse
-        for (const part of raw.split(";")) {
-          const [k, v] = part.split("=").map(s => s.trim());
-          if (k === "token") {
-            token = decodeURIComponent(v || "");
-            break;
-          }
-        }
-      }
+			// If not present, try to read httpOnly cookie named 'token' from headers
+			if (!token && socket.handshake.headers && socket.handshake.headers.cookie) {
+				const raw = socket.handshake.headers.cookie as string;
+				// simple cookie parse
+				for (const part of raw.split(";")) {
+					const [k, v] = part.split("=").map(s => s.trim());
+					if (k === "token") {
+						token = decodeURIComponent(v || "");
+						break;
+					}
+				}
+			}
 
-      if (!token) {
-        socket.disconnect(true);
-        return;
-      }
+			if (!token) {
+				socket.disconnect(true);
+				return;
+			}
 
-      const decoded = jwt.verify(token, JWT_SECRET) as any;
-      if (!decoded || typeof decoded.id !== "number") {
-        socket.disconnect(true);
-        return;
-      }
+			const decoded = jwt.verify(token, JWT_SECRET) as any;
+			if (!decoded || typeof decoded.id !== "number") {
+				socket.disconnect(true);
+				return;
+			}
 
-      const user = await db.findUserById(decoded.id);
-      if (!user) {
-        socket.disconnect(true);
-        return;
-      }
+			const user = await db.findUserById(decoded.id);
+			if (!user) {
+				socket.disconnect(true);
+				return;
+			}
 
-      // register socket
-      const set = userSockets.get(user.id) ?? new Set<string>();
-      set.add(socket.id);
-      userSockets.set(user.id, set);
+			// register socket
+			const set = userSockets.get(user.id) ?? new Set<string>();
+			set.add(socket.id);
+			userSockets.set(user.id, set);
 
-      // store on socket for cleanup
-      (socket as any).userId = user.id;
+			// store on socket for cleanup
+			(socket as any).userId = user.id;
 
-      socket.emit("connected", { ok: true, user: { id: user.id, login: user.login } });
+			socket.emit("connected", { ok: true, user: { id: user.id, login: user.login } });
 
-      socket.on("disconnect", () => {
-        const uid = (socket as any).userId as number | undefined;
-        if (!uid) return;
-        const s = userSockets.get(uid);
-        if (!s) return;
-        s.delete(socket.id);
-        if (s.size === 0) userSockets.delete(uid);
-        else userSockets.set(uid, s);
-      });
-    } catch (err) {
-      socket.disconnect(true);
-    }
-  });
+			socket.on("disconnect", () => {
+				const uid = (socket as any).userId as number | undefined;
+				if (!uid) return;
+				const s = userSockets.get(uid);
+				if (!s) return;
+				s.delete(socket.id);
+				if (s.size === 0) userSockets.delete(uid);
+				else userSockets.set(uid, s);
+			});
+		} catch (err) {
+			socket.disconnect(true);
+		}
+	});
 
-  return io;
+	return io;
 }
 
 export function getIo() {
-  if (!io) throw new Error("Socket.io not initialized");
-  return io;
+	if (!io) throw new Error("Socket.io not initialized");
+	return io;
 }
 
 export function broadcastAdminMessage(message: string) {
-  if (!io) return;
-  io.emit("admin:message", { message, ts: new Date().toISOString() });
+	if (!io) return;
+	io.emit("admin:message", { message, ts: new Date().toISOString() });
 }
 
 export function getUserSocketIds(userId: number): string[] {
-  const s = userSockets.get(userId);
-  return s ? Array.from(s) : [];
+	const s = userSockets.get(userId);
+	return s ? Array.from(s) : [];
 }
