@@ -5,6 +5,7 @@ import { logout } from "./userSlice";
 export type TeamState = Team;
 
 const initialState: TeamState = {
+	id: -1,
 	name: "",
 	image: "",
 	xp: -1,

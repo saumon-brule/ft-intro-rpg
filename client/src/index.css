@@ -24,6 +24,12 @@ body {
 	margin: 0;
 }
 
+a {
+	text-decoration: none;
+	appearance: none;
+	color: black;
+}
+
 p {
 	margin: 0;
 }

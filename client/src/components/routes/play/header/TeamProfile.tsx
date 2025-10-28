@@ -1,20 +1,19 @@
 import { useSelector } from "react-redux";
-import { useTeam } from "../../../../hooks/useTeam"
+import { useTeam } from "../../../../hooks/useTeam";
 import type { RootState } from "../../../../store";
 
 import { levelFromXp, xpForLevel } from "../../../../utils/xpCalc";
 
-import "./TeamProfile.css"
+import "./TeamProfile.css";
 
 export default function TeamProfile() {
 	const loading = useTeam();
 
 	const team = useSelector((state: RootState) => state.team);
 
-	console.log(12);
 
-	if (loading) return <div className="team-profile loading">12356</div>
-	if (!team) return <div className="team-profil no-team"> pas encore de team, attendez ca arrive</div>
+	if (loading) return null;
+	if (team.id < 0) return null;
 
 	const level = levelFromXp(team.xp);
 	const levelXp = xpForLevel(level);

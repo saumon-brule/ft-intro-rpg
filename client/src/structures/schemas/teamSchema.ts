@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 export const teamSchema = z.object({
 	id: z.number(),
@@ -25,6 +25,7 @@ export const teamSchema = z.object({
 		})
 	)
 }).transform((data) => ({
+	id: data.id,
 	name: data.guild.name,
 	image: data.guild.image,
 	xp: data.xp,
