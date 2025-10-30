@@ -161,7 +161,9 @@ export const getMyActiveQuests = async (req: Request, res: Response) => {
     active_quest: active,
     quest: quest,
     team: team,
-    members: users.filter(Boolean)
+    members: users.filter(Boolean),
+    status: "in_progress",
+    remaining: candidates.length
   };
 
   res.json(result);
