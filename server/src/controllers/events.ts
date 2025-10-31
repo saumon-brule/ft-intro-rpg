@@ -192,9 +192,9 @@ export const finishEvent = async (req: Request, res: Response) => {
       }
     }
 
-    // Notify all connected sockets that event is finished
-    const io = getIo();
-    io.emit("active_quest:status", { status: "finished", message: "Event finished" });
+  // Notify all connected sockets that event is finished using new payload shape
+  const io = getIo();
+  io.emit("active_quest:assigned", { active_quest: null, quest: null, newXp: 0, gameStatus: "finished" });
 
     return res.json({ finished: true, closed: inProgress.length });
   } catch (err) {
@@ -205,9 +205,11 @@ export const finishEvent = async (req: Request, res: Response) => {
 
 // Broadcast a message to all connected sockets (admin)
 export const broadcastMessage = async (req: Request, res: Response) => {
-  const { message } = req.body as any;
-  if (typeof message !== "string") return res.status(400).json({ error: "message must be a string" });
-  broadcastAdminMessage(String(message));
+  const { title, subtitle, content } = req.body as any;
+  if (typeof title !== "string") return res.status(400).json({ error: "title must be a string" });
+  if (typeof content !== "string") return res.status(400).json({ error: "content must be a string" });
+  const sub = typeof subtitle === "string" ? subtitle : new Date().toISOString();
+  broadcastAdminMessage(title, sub, content);
   res.status(204).send();
 };
 
@@ -215,8 +217,10 @@ export const broadcastMessage = async (req: Request, res: Response) => {
 export const broadcastToUser = async (req: Request, res: Response) => {
   const id = (req.params as any).idParsed ?? Number(req.params.id);
   if (!id || isNaN(Number(id))) return res.status(400).json({ error: "Invalid user id" });
-  const { message } = req.body as any;
-  if (typeof message !== "string") return res.status(400).json({ error: "message must be a string" });
+  const { title, subtitle, content } = req.body as any;
+  if (typeof title !== "string") return res.status(400).json({ error: "title must be a string" });
+  if (typeof content !== "string") return res.status(400).json({ error: "content must be a string" });
+  const sub = typeof subtitle === "string" ? subtitle : new Date().toISOString();
 
   const socketIds = getUserSocketIds(Number(id));
   if (!socketIds || socketIds.length === 0) {
@@ -225,7 +229,7 @@ export const broadcastToUser = async (req: Request, res: Response) => {
 
   const io = getIo();
   for (const sid of socketIds) {
-    io.to(sid).emit("admin:message", { message: String(message), ts: new Date().toISOString() });
+    io.to(sid).emit("admin:message", { title: title, subtitle: sub, content: content });
   }
 
   res.status(204).send();

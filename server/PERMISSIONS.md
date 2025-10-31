@@ -38,6 +38,10 @@ Exemples de routes avec différents niveaux de permissions :
 - `GET /api/users/me` - Informations utilisateur actuel
 - `PATCH /api/users/:id42/permission` - Modifier permission (admin)
 
+### 6. **Broadcast Admin Messages** (`routes/events.ts`)
+- `POST /api/events/broadcast` - Envoyer un message admin à tous les sockets connectés. Corps attendu : `{ title: string, subtitle?: string, content: string }`. `subtitle` est optionnel (par défaut le timestamp sera utilisé).
+- `POST /api/events/broadcast/:id` - Envoyer un message admin à un utilisateur spécifique. Corps attendu identique.
+
 ### 6. **Type AuthenticatedRequest**
 Type TypeScript pour accéder aux infos utilisateur dans les routes :
 ```typescript

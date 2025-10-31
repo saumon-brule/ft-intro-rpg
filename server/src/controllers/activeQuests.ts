@@ -162,6 +162,7 @@ export const getMyActiveQuests = async (req: Request, res: Response) => {
     quest: quest,
     team: team,
     members: users.filter(Boolean),
+    newXp: team ? (team.xp || 0) : 0,
     status: "in_progress",
     remaining: candidates.length
   };

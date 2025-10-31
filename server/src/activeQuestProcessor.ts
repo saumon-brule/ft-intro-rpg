@@ -19,9 +19,9 @@ export async function assignNextQuestForTeam(tId: number) {
     const users = await Promise.all(members.map((m) => db.findUserById(m.user_id)));
     const socketIds = ([] as string[]).concat(...users.filter(Boolean).map(u => getUserSocketIds(u!.id)));
     const io = getIo();
-    const payload = { status: "finished", message: "No more quests available" };
+    const payload = { active_quest: null, quest: null, newXp: team ? (team.xp || 0) : 0, gameStatus: "finished" };
     for (const sid of socketIds) {
-      io.to(sid).emit("active_quest:status", payload);
+      io.to(sid).emit("active_quest:assigned", payload);
     }
     return null;
   }
@@ -41,8 +41,8 @@ export async function assignNextQuestForTeam(tId: number) {
   const newAssigned = {
     active_quest: newActive,
     quest: pick,
-    team: team,
-    members: users.filter(Boolean)
+    newXp: team ? (team.xp || 0) : 0,
+    gameStatus: "in_progress"
   };
 
   // Notify all team members over websocket

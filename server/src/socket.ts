@@ -18,10 +18,13 @@ export function initSocket(server: http.Server) {
 	const port = process.env.FRONT_PORT ? parseInt(process.env.FRONT_PORT) : 3000;
 	const protocol = process.env.FRONT_PROTOCOL ?? "http";
 	const hostname = process.env.FRONT_HOSTNAME ?? "localhost";
+	console.log(`Socket.io initializing (path=/socket.io) CORS reflecting origin`);
 	io = new IOServer(server, {
-		path: "/ws",
+		// use default socket.io path so clients connecting without custom path don't get 404
+		path: "/socket.io",
 		cors: {
-			origin: `${protocol}://${hostname}:${port}`,
+			// reflect the request origin so Access-Control-Allow-Origin is present and compatible with credentials
+			origin: true,
 			methods: ["GET", "POST"],
 			credentials: true
 		}
@@ -94,9 +97,9 @@ export function getIo() {
 	return io;
 }
 
-export function broadcastAdminMessage(message: string) {
+export function broadcastAdminMessage(title: string, subtitle: string, content: string) {
 	if (!io) return;
-	io.emit("admin:message", { message, ts: new Date().toISOString() });
+	io.emit("admin:message", { title: String(title), subtitle: String(subtitle), content: String(content) });
 }
 
 export function getUserSocketIds(userId: number): string[] {

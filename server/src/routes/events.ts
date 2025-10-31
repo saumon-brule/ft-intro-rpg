@@ -14,14 +14,14 @@ router.post("/start", requireAdmin, asyncHandler(startEvent));
 router.post("/finish", requireAdmin, asyncHandler(finishEvent));
 
 // Admin broadcast message to all connected sockets
-router.post("/broadcast", requireAdmin, validateBody(["message"]), asyncHandler(broadcastMessage));
+router.post("/broadcast", requireAdmin, validateBody(["title", "subtitle", "content"]), asyncHandler(broadcastMessage));
 
 // Send a notification to a specific user by id (admin)
 router.post(
   "/broadcast/:id",
   requireAdmin,
   validateNumericParam("id"),
-  validateBody(["message"]),
+  validateBody(["title", "subtitle", "content"]),
   asyncHandler(broadcastToUser)
 );
 
