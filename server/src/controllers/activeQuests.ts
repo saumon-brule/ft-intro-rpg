@@ -146,6 +146,10 @@ export const getMyActiveQuests = async (req: Request, res: Response) => {
       return res.json({ active_quest: null, quest: null, team, members: users.filter(Boolean), status: "idle", remaining: candidates.length });
     }
 
+    if (state === "finished") {
+      return res.json({ active_quest: null, quest: null, team, members: users.filter(Boolean), status: "closed", remaining: candidates.length });
+    }
+
     if (candidates.length === 0) {
       return res.json({ active_quest: null, quest: null, team, members: users.filter(Boolean), status: "finished", remaining: 0 });
     }
