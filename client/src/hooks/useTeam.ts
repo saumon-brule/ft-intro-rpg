@@ -1,8 +1,8 @@
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect, useState } from "react";
-import { type AppDispatch, type RootState } from "../store";
+import { type AppDispatch, type RootState } from "../store/store";
 import { FetchError } from "../structures/FetchError";
-import { setTeam } from "../slices/teamSlice";
+import { setTeam } from "../store/slices/teamSlice";
 import { teamSchema } from "../structures/schemas/teamSchema";
 
 export function useTeam() {

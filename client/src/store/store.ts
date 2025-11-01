@@ -1,11 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
 import userReducer from "./slices/userSlice";
 import teamReducer from "./slices/teamSlice";
+import popUpsReducer from "./slices/popUpsSlice";
 
 export const store = configureStore({
 	reducer: {
 		user: userReducer,
-		team: teamReducer
+		team: teamReducer,
+		popUps: popUpsReducer
 	}
 });
 
