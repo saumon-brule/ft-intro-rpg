@@ -1,5 +1,5 @@
 import { useSelector } from "react-redux";
-import { type RootState } from "../../../store";
+import { type RootState } from "../../../store/store";
 
 export default function Home() {
 	const user = useSelector((state: RootState) => state.user);

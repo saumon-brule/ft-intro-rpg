@@ -20,6 +20,9 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
+      "@typescript-eslint/no-unused-vars": ["error", {
+        argsIgnorePattern: "^_"
+      }],
       "indent": ["error", "tab", { "SwitchCase": 1 }],
       "semi": ["error", "always"],
       "no-trailing-spaces": "error",

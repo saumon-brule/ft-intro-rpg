@@ -1,4 +1,4 @@
-import type { RootState } from "../../store";
+import type { RootState } from "../../store/store";
 import { useSelector } from "react-redux";
 import { Outlet } from "react-router-dom";
 import type { ReactNode } from "react";

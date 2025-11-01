@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { UserRole } from "../UserRole";
 
 export const usersMeSchema = z.object({
 	id: z.number(),
@@ -12,7 +13,7 @@ export const usersMeSchema = z.object({
 	created_at: z.any(),
 	updated_at: z.any()
 }).transform((data) => {
-	const roles = [];
+	const roles: UserRole[] = [];
 	switch (data.permission) {
 		case 2:
 			roles.push("admin");

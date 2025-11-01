@@ -1,6 +1,6 @@
 import { useSelector } from "react-redux";
 import { useTeam } from "../../../../hooks/useTeam";
-import type { RootState } from "../../../../store";
+import type { RootState } from "../../../../store/store";
 
 import { levelFromXp, xpForLevel } from "../../../../utils/xpCalc";
 

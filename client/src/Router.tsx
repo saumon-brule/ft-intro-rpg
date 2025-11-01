@@ -8,8 +8,8 @@ import RequireRole from "./components/generic/RequireRole";
 import Error404 from "./components/errors/Error404";
 import AdminHome from "./components/routes/admin/Home";
 import { useSelector } from "react-redux";
-import type { RootState } from "./store";
-import type { UserState } from "./slices/userSlice";
+import type { RootState } from "./store/store";
+import type { UserState } from "./store/slices/userSlice";
 import MainLayout from "./components/MainLayout";
 
 function getRootPath(user: UserState) {
