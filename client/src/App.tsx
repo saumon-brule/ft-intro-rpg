@@ -15,7 +15,6 @@ export default function App() {
 	const loading = useAuth();
 	const dispatch = useDispatch<AppDispatch>();
 
-	console.log(socket);
 	useEffect(() => {
 		socket.on("admin:message", (messageData) => {
 			const { title, subtitle, message } = adminMessageSchema.parse(messageData);

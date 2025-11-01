@@ -18,10 +18,9 @@ export function initSocket(server: http.Server) {
 	const port = process.env.FRONT_PORT ? parseInt(process.env.FRONT_PORT) : 3000;
 	const protocol = process.env.FRONT_PROTOCOL ?? "http";
 	const hostname = process.env.FRONT_HOSTNAME ?? "localhost";
-	console.log(`Socket.io initializing (path=/socket.io) CORS reflecting origin`);
+	console.log(`Socket.io initializing (path=/ws) CORS reflecting origin`);
 	io = new IOServer(server, {
-		// use default socket.io path so clients connecting without custom path don't get 404
-		path: "/socket.io",
+		path: "/ws",
 		cors: {
 			// reflect the request origin so Access-Control-Allow-Origin is present and compatible with credentials
 			origin: true,
