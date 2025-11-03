@@ -120,7 +120,6 @@ export const listTeamsOnQuest = async (req: Request, res: Response) => {
 export const getMyActiveQuests = async (req: Request, res: Response) => {
 	const authReq = req as any;
 	const user = authReq.user;
-	if (!user) return res.status(401).json({ error: "Authentication required" });
 
 	// Find the team for this user
 	const team = await db.getTeamByMember(user.id);
