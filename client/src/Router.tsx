@@ -11,7 +11,7 @@ import { useSelector } from "react-redux";
 import type { RootState } from "./store/store";
 import type { UserState } from "./store/slices/userSlice";
 import MainLayout from "./components/MainLayout";
-import PnjPage from "./components/pnj/PnjPage";
+import PnjPage from "./components/routes/quest/PnjPage";
 
 function getRootPath(user: UserState) {
 	if (!user.loggedIn)
