@@ -23,12 +23,13 @@
 }
 
 .play-page {
-	background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("images/app-background.jpg");
+	background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("images/old-wood-background.jpg");
 	background-size: cover;
 	background-position: center;
 	font-family: "Uncial Antiqua", system;
 }
 
 .play-page :is(h1, h2, h3) {
-	font-family: monospace;
+	font-family: Canterbury;
+	letter-spacing: 4px;
 }

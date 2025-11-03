@@ -5,15 +5,16 @@ import { gameStatusSchema } from "./gameStatusSchema";
 export const activeQuestSchema = z.object({
 	active_quest: z.object({
 		ends_at: z.string()
-	}),
-	quest: questSchema,
-	newXp: z.number(),
-	status: gameStatusSchema
+	}).nullable(),
+	quest: questSchema.nullable(),
+	gameStatus: gameStatusSchema
 }).transform((data) => ({
-	...data.quest,
-	endsAt: data.active_quest.ends_at,
-	newXp: data.newXp,
-	gameStatus: data.status
+	quest: data.active_quest && data.quest && {
+		...data.quest,
+		endsAt: data.active_quest.ends_at
+	},
+	gameStatus: data.gameStatus
 }));
 
-export type ActiveQuest = z.infer<typeof activeQuestSchema>;
+export type ActiveQuest = z.infer<typeof activeQuestSchema>["quest"];
+export type ActiveQuestData = z.infer<typeof activeQuestSchema>;

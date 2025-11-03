@@ -1,8 +1,8 @@
 
 #profile-button {
 	position: relative;
-	width: 100px;
-	height: 100px;
+	height: 100%;
+	aspect-ratio: 1/1;
 	border: none;
 	background: url("/images/profile-paper-texture.webp") no-repeat center/cover;
 	border-radius: 1rem;

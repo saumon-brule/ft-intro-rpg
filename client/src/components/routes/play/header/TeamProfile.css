@@ -6,6 +6,7 @@
 	flex: 1;
 	display: flex;
 	flex-direction: column;
+	height: 100%;
 }
 
 #team-profile::after {
@@ -24,17 +25,27 @@
 
 #team-profile .team-name {
 	margin: 0;
-	font-size: small;
+	font-size: 20px;
 	width: 100%;
 	text-align: center;
 	flex: 1;
 	overflow: hidden;
 }
 
+#team-profile .team-level {
+	display: flex;
+	gap: 5px;
+	align-items: center;
+}
+
+#team-profile .team-level > span {
+	white-space: nowrap;
+}
+
 #team-profile .progress-bar {
 	position: relative;
 	width: 100%;
-	height: 20px;
+	height: 30px;
 	background-color: #0005;
 }
 
@@ -42,7 +53,7 @@
 	content: "";
 	position: absolute;
 	inset: 0;
-	border-radius: 999px;
+	border-radius: 99999px;
 	padding: 2px;
 	background: linear-gradient(45deg, #ccc, #fff, #999, #eee);
 	mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -52,9 +63,20 @@
 	pointer-events: none;
 }
 
-#team-profile .progress-bar span {
+#team-profile .progress-bar .progress-zone {
+	position: absolute;
+	/* background: linear-gradient(#00c853 0%, #00c853 65%, #009624 65%, #009624 100%); */
+	background: linear-gradient(to bottom, #00c957 0%, #00913b 45%, #004d1b 100%);
+	border-radius: 99999px;
+	height: 100%;
+	width: 100%;
+}
+
+#team-profile .progress-bar .team-xp {
 	position: absolute;
 	top: 50%;
 	left: 50%;
 	transform: translate(-50%, -50%);
+	width: 100%;
+	text-align: center;
 }

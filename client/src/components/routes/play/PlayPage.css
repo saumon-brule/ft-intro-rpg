@@ -2,4 +2,93 @@
 	height: 100%;
 	width: 100%;
 	max-width: 850px;
+	display: flex;
+	flex-direction: column;
+}
+
+.quest-container {
+	overflow: auto;
+	padding: 1rem;
+	flex: 1;
+}
+
+.quest {
+	padding: 8%;
+	background: url(/images/quest-paper.png) no-repeat center;
+	aspect-ratio: 431 / 578;
+	color: #4e2a07;
+	background-size: contain;
+	display: flex;
+	flex-direction: column;
+}
+
+.quest-title {
+	width: 100%;
+	text-decoration: underline;
+	font-size: 25px;
+	text-align: center;
+	margin-top: 0;
+	margin-bottom: 15px;
+}
+
+.quest-detail {
+	font-size: 15px;
+	display: flex;
+	width: 100%;
+	justify-content: space-evenly;
+	align-items: center;
+}
+
+.quest-timer {
+	width: 40%;
+	white-space: nowrap;
+}
+
+.quest-timer :first-child {
+	white-space: wrap;
+}
+
+.quest-timer :last-child {
+	height: 100%;
+	vertical-align: middle;
+}
+
+.quest hr {
+	height: 1.5px;
+	margin-inline: 1rem;
+	background-color: #4e2a07;
+	outline: none;
+	border: none;
+	border-radius: 5px;
+}
+
+.quest main {
+	flex: 1;
+	overflow: auto;
+}
+
+.quest :is(main, footer) {
+	padding: 1em;
+}
+
+.quest-lore {
+	text-indent: 1em;
+	margin-bottom: 15px;
+}
+
+.quest-clue {
+	text-indent: 1em;
+}
+
+.quest footer {
+	
+}
+
+.quest-reward-container {
+	display: flex;
+	justify-content: end;
+}
+
+.quest-reward-value {
+	text-decoration: underline;
 }

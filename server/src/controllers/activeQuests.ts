@@ -143,19 +143,19 @@ export const getMyActiveQuests = async (req: Request, res: Response) => {
 		const state = getEventState();
 
 		if (state === "idle") {
-			return res.json({ active_quest: null, quest: null, status: "idle", remaining: candidates.length });
+			return res.json({ active_quest: null, quest: null, gameStatus: "idle", remaining: candidates.length });
 		}
 
 		if (state === "finished") {
-			return res.json({ active_quest: null, quest: null, status: "closed", remaining: candidates.length });
+			return res.json({ active_quest: null, quest: null, gameStatus: "closed", remaining: candidates.length });
 		}
 
 		if (candidates.length === 0) {
-			return res.json({ active_quest: null, quest: null, status: "finished", remaining: 0 });
+			return res.json({ active_quest: null, quest: null, gameStatus: "finished", remaining: 0 });
 		}
 
 		// event started but team has no active quest yet
-		return res.json({ active_quest: null, quest: null, status: "waiting", remaining: candidates.length });
+		return res.json({ active_quest: null, quest: null, gameStatus: "waiting", remaining: candidates.length });
 	}
 	const quest = await db.getQuestById(active.quest_id);
 	const members = await db.getTeamMembers(active.team_id);
@@ -164,7 +164,7 @@ export const getMyActiveQuests = async (req: Request, res: Response) => {
 	const result = {
 		active_quest: active,
 		quest: quest,
-		status: "in_progress",
+		gameStatus: "in_progress",
 		remaining: candidates.length
 	};
 

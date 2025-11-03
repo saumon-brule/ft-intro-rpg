@@ -7,6 +7,7 @@ import { setStatus } from "../store/slices/gameSlice";
 import { activeQuestSchema } from "../structures/schemas/activeQuestSchema";
 import { setActiveQuest } from "../store/slices/questSlice";
 import { setXp } from "../store/slices/teamSlice";
+import { assignedActiveQuestSchema } from "../structures/schemas/assignedActiveQuest";
 
 export function useQuest() {
 	const [error, setError] = useState<Error | null>(null);
@@ -28,18 +29,18 @@ export function useQuest() {
 					}
 					throw new FetchError(data?.error ?? `HTTP Error: ${response.status}`, response.status);
 				}
+				console.log(data);
 				const activeQuestData = activeQuestSchema.parse(data);
 				dispatch(setStatus(activeQuestData.gameStatus));
-				dispatch(setXp(activeQuestData.newXp));
-				dispatch(setActiveQuest(activeQuestData));
+				dispatch(setActiveQuest(activeQuestData.quest));
 			})
 			.catch((error) => setError(error))
 			.finally(() => setLoading(false));
 		socket.on("active_quest:assigned", (data) => {
-			const activeQuestData = activeQuestSchema.parse(data);
-			dispatch(setStatus(activeQuestData.gameStatus));
-			dispatch(setXp(activeQuestData.newXp));
-			dispatch(setActiveQuest(activeQuestData));
+			const assignedActiveQuestData = assignedActiveQuestSchema.parse(data);
+			dispatch(setStatus(assignedActiveQuestData.gameStatus));
+			dispatch(setXp(assignedActiveQuestData.newXp));
+			dispatch(setActiveQuest(assignedActiveQuestData.quest));
 		});
 		return () => {
 			socket.off("active_quest:assigned");

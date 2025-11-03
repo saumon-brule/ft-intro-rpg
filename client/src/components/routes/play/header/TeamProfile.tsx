@@ -15,16 +15,20 @@ export default function TeamProfile() {
 	if (loading) return null;
 	if (team.id < 0) return null;
 
+	(window as (typeof window & { lvlfromxp: typeof levelFromXp })).lvlfromxp = levelFromXp;
+	(window as (typeof window & { xpforlvl: typeof xpForLevel })).xpforlvl = xpForLevel;
+
 	const level = levelFromXp(team.xp);
 	const levelXp = xpForLevel(level);
 
 	return <div id="team-profile">
 		<h3 className="team-name">{team.name}</h3>
-		<div className="progress-bar">
-			<div className="progress-zone">
-				<div className="progress-fill" style={{}}></div>
+		<div className="team-level">
+			<span className="team-level">niveau : {level}</span>
+			<div className="progress-bar">
+				<div className="progress-zone" style={{ "width": `${(team.xp - levelXp) / (xpForLevel(level + 1) - levelXp) * 100}%` }} />
+				<span className="team-xp">{team.xp - levelXp} / {xpForLevel(level + 1) - levelXp}</span>
 			</div>
-			<span>{team.xp - levelXp} / {xpForLevel(level + 1) - levelXp}</span>
 		</div>
 	</div>;
 }
