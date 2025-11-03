@@ -1,9 +1,10 @@
-import { Request, Response } from "express";
+import { Request, response, Response } from "express";
 import { db, UserPermission } from "../db/database";
 import { broadcastAdminMessage, getUserSocketIds, getIo } from "../socket";
 import { assignNextQuestForTeam } from "../activeQuestProcessor";
 import { setEventState } from "../eventState";
 import { cancelActiveQuest } from "../activeQuestScheduler";
+import { ftApp } from "../index";
 
 function shuffle<T>(array: T[]) {
 	let currentIndex = array.length;
@@ -233,4 +234,69 @@ export const broadcastToUser = async (req: Request, res: Response) => {
 	}
 
 	res.status(204).send();
+};
+
+// Return all events (admin)
+export const getEvents = async (req: Request, res: Response) => {
+
+	ftApp.httpClient.get(`/v2/campus/9/events`).then(async (response) => {
+
+		if (response.status !== 200) return res.status(500).json({ error: "Failed to fetch events" });
+
+		const listEvents = await response.json();
+		res.json(listEvents);
+
+	}).catch(error => {
+		console.error("Error fetching events", error);
+		res.status(500).json({ error: "Failed to fetch events" });
+	});
+};
+
+
+// Return registered peoples (admin only)
+export const getRegisteredPeoples = async (req: Request, res: Response) => {
+	const id = parseInt(req.params.id, 10);
+
+	try {
+		const response = await ftApp.httpClient.get(`/v2/events/${id}/events_users`);
+		if (response.status !== 200) {
+			return res.status(500).json({ error: "Failed to fetch registered users" });
+		}
+
+		const listUsers = await response.json();
+
+		// For each registered entry, ensure a local user account exists (preregister)
+		for (const entry of listUsers) {
+			try {
+				const u = entry.user;
+				if (!u || typeof u.id !== 'number') continue;
+
+				const existing = await db.findUserById42(u.id);
+				if (existing) continue;
+
+				// Build user insert payload from API data
+				const userInsert = {
+					id42: u.id,
+					login: u.login,
+					image: u?.image?.versions?.medium || "https://profile.intra.42.fr/images/default.png",
+					pool_month: u.pool_month,
+					pool_year: u.pool_year
+				};
+
+				// Create user (permission defaults to USER inside createUser)
+				// ignore result, continue on errors
+				// eslint-disable-next-line no-await-in-loop
+				await db.createUser(userInsert as any);
+			} catch (err) {
+				console.error('Failed to preregister user', err);
+				// continue with others
+			}
+		}
+
+		// Return 204 No Content as requested
+		return res.status(204).send();
+	} catch (error) {
+		console.error("Error fetching registered users", error);
+		return res.status(500).json({ error: "Failed to fetch registered users" });
+	}
 };
