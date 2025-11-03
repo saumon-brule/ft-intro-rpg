@@ -2,7 +2,7 @@ import express from "express";
 import { requireAdmin } from "../middlewares/auth";
 import { asyncHandler, validateBody, validateNumericParam } from "../middlewares/validation";
 import { Request, Response } from "express";
-import { createTeamsEvent, broadcastMessage, broadcastToUser, startEvent, finishEvent } from "../controllers/events";
+import { createTeamsEvent, broadcastMessage, broadcastToUser, startEvent, finishEvent, getRegisteredPeoples, getEvents } from "../controllers/events";
 
 const router = express.Router();
 
@@ -24,5 +24,14 @@ router.post(
   validateBody(["title", "subtitle", "content"]),
   asyncHandler(broadcastToUser)
 );
+
+// Admin route: get 42Lyon events
+router.get("/get-events", requireAdmin, asyncHandler(getEvents));
+
+// Admin route: save registered peoples
+router.post("/save-registered-peoples/:id", requireAdmin, validateNumericParam("id"), asyncHandler(getRegisteredPeoples));
+
+// Also expose GET /get-registered-peoples/:id for convenience (same handler)
+router.get("/get-registered-peoples/:id", requireAdmin, validateNumericParam("id"), asyncHandler(getRegisteredPeoples));
 
 export default router;

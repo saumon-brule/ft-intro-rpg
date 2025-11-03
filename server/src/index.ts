@@ -33,6 +33,8 @@ const protocol = process.env.PROTOCOL ?? "http";
 const hostname = process.env.HOSTNAME ?? "localhost";
 
 const ftApp = new FtApp([{ uid: process.env.FT_APP_UID, secret: process.env.FT_APP_SECRET, redirectURI: `${protocol}://${hostname}:${port}/api/auth/callback` }]);
+export { ftApp };
+
 const expressApp = express();
 
 expressApp.use(cookieParser());
