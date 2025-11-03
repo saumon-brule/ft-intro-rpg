@@ -30,9 +30,9 @@ Rien de très compliqué,
 ## `server`
 
 On utilise express.js pour créer l'api. L'api de l'intra et la connexion est
-gérée avec ft.js (petite lib pour gérer tout ce qui est authentification etc
-(c'est la personne qui écrit ce readme qui l'a fait j'en profte pour faire
-ma pub))
+gérée avec ft.js (petite lib pour gérer tout ce qui est authentification à
+l'intra etc (c'est la personne qui écrit ce readme qui l'a fait j'en profte pour
+faire ma pub))
 
 Vous avez le `.env.example` à la racine pour vous aider à créer votre `.env`
 Pour dev les seuls trucs importants à set sont les champ `FT_APP_UID` et
@@ -40,7 +40,7 @@ Pour dev les seuls trucs importants à set sont les champ `FT_APP_UID` et
 
 Oubliez pas de set la bonne route de callback dans les
 paramètres de votre api sur l'intra (par défaut
-`http://localhost:3000/api/auth/callback` en fonction des paramètres dque vous
+`http://localhost:3000/api/auth/callback` en fonction des paramètres que vous
 mettez dans l'env)
 
-Fais avec amour par lilefebv et ebini
+Fais avec amour par `lilefebv` et `ebini`
