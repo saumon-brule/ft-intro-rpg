@@ -11,6 +11,7 @@ import { useSelector } from "react-redux";
 import type { RootState } from "./store/store";
 import type { UserState } from "./store/slices/userSlice";
 import MainLayout from "./components/MainLayout";
+import PnjPage from "./components/pnj/PnjPage";
 
 function getRootPath(user: UserState) {
 	if (!user.loggedIn)
@@ -42,6 +43,16 @@ export default function Router() {
 						{
 							path: "login",
 							element: !user.loggedIn ? <Login /> : <Navigate to="/" replace />
+						},
+						{
+							path: "quest",
+							element: user.loggedIn ? <RequireRole  role={"pnj"} fallback={<Error404 />} /> : <Navigate to="/login" replace />,
+							children: [
+								{
+									index: true,
+									element: <PnjPage />
+								}
+							]
 						},
 						{
 							path: "admin",
