@@ -25,7 +25,7 @@ C'est un petit site fait en react et avec la lib redux pour gérer un store, et
 la lib react-router-dom pour faire un routing fulls client-side, je me sers de
 zod pour typer les réponses api, (Pour éviter les mauvaises surprises).
 
-Rien de très compliqué, 
+Rien de très compliqué, tout le reste c'est du react/css classique
 
 ## `server`
 
