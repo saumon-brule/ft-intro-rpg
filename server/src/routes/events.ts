@@ -3,6 +3,7 @@ import { requireAdmin } from "../middlewares/auth";
 import { asyncHandler, validateBody, validateNumericParam } from "../middlewares/validation";
 import { Request, Response } from "express";
 import { createTeamsEvent, broadcastMessage, broadcastToUser, startEvent, finishEvent, getRegisteredPeoples, getEvents } from "../controllers/events";
+import { getEventState } from "../eventState";
 
 const router = express.Router();
 
@@ -34,4 +35,10 @@ router.post("/save-registered-peoples/:id", requireAdmin, validateNumericParam("
 // Also expose GET /get-registered-peoples/:id for convenience (same handler)
 router.get("/get-registered-peoples/:id", requireAdmin, validateNumericParam("id"), asyncHandler(getRegisteredPeoples));
 
+// Public route: get current event status
+router.get("/status", (req: Request, res: Response) => {
+  return res.json({ status: getEventState() });
+});
+
 export default router;
+
