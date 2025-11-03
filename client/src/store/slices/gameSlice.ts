@@ -16,7 +16,7 @@ const gameSlice = createSlice({
 	name: "game",
 	initialState,
 	reducers: {
-		setStatus(state, action: PayloadAction<GameStatus>) {
+		setGameStatus(state, action: PayloadAction<GameStatus>) {
 			state.status = action.payload;
 		}
 	},
@@ -26,5 +26,5 @@ const gameSlice = createSlice({
 	}
 });
 
-export const { setStatus } = gameSlice.actions;
+export const { setGameStatus } = gameSlice.actions;
 export default gameSlice.reducer;

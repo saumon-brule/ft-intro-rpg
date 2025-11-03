@@ -2,25 +2,20 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { Team } from "../../structures/schemas/teamSchema";
 import { logout } from "./userSlice";
 
-type TeamState = Team
+export type UserTeam = Team | null;
+type TeamState = { userTeam: UserTeam };
 
-const initialState: TeamState = {
-	id: -1,
-	name: "",
-	image: "",
-	xp: -1,
-	members: []
-};
+const initialState: TeamState = { userTeam: null };
 
 const teamSlice = createSlice({
 	name: "team",
 	initialState,
 	reducers: {
-		setTeam(_, action: PayloadAction<TeamState>) {
-			return structuredClone(action.payload);
+		setTeam(_, action: PayloadAction<UserTeam>) {
+			return { userTeam: action.payload };
 		},
 		setXp(state, action: PayloadAction<number>) {
-			state.xp = action.payload;
+			if (state.userTeam) state.userTeam.xp = action.payload;
 		}
 	},
 	extraReducers: (builder) => {

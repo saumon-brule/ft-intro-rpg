@@ -1,13 +1,14 @@
 import { z } from "zod";
 import { questSchema } from "./questSchema";
-import { gameStatusSchema } from "./gameStatusSchema";
+import { questStatusSchema } from "./questStatusSchema";
+
 
 export const activeQuestSchema = z.object({
 	active_quest: z.object({
 		ends_at: z.string()
 	}).nullable(),
 	quest: questSchema.nullable(),
-	gameStatus: gameStatusSchema
+	gameStatus: questStatusSchema
 }).transform((data) => ({
 	quest: data.active_quest && data.quest && {
 		...data.quest,

@@ -1,5 +1,4 @@
 import { useSelector } from "react-redux";
-import { useTeam } from "../../../../hooks/useTeam";
 import type { RootState } from "../../../../store/store";
 
 import { levelFromXp, xpForLevel } from "../../../../utils/xpCalc";
@@ -7,16 +6,9 @@ import { levelFromXp, xpForLevel } from "../../../../utils/xpCalc";
 import "./TeamProfile.css";
 
 export default function TeamProfile() {
-	const loading = useTeam();
+	const team = useSelector((state: RootState) => state.team.userTeam);
 
-	const team = useSelector((state: RootState) => state.team);
-
-
-	if (loading) return null;
-	if (team.id < 0) return null;
-
-	(window as (typeof window & { lvlfromxp: typeof levelFromXp })).lvlfromxp = levelFromXp;
-	(window as (typeof window & { xpforlvl: typeof xpForLevel })).xpforlvl = xpForLevel;
+	if (!team) return null;
 
 	const level = levelFromXp(team.xp);
 	const levelXp = xpForLevel(level);

@@ -8,6 +8,10 @@
 	justify-content: center;
 }
 
+.login-title {
+	text-align: center;
+}
+
 .login-link {
 	outline: none;
 	display: inline-flex;
@@ -26,6 +30,13 @@
 
 .login-link:is(:hover, :focus-visible) {
 	background-color: #EEE;
+}
+
+.login-warning {
+	font-weight: 700;
+	margin-bottom: 15px;
+	text-align: center;
+	padding-inline: 50px;
 }
 
 .login-link img {

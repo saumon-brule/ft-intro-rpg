@@ -1,7 +1,11 @@
 import z from "zod";
 
-//                                                     quest      game not  no quest
-//                                       game end      active     started    active
-export const gameStatusSchema = z.enum(["finished", "in_progress", "idle", "waiting"]);
+//                                                  game not  game
+//                                       game end   started   started
+export const gameStatusSchema = z.enum(["finished", "idle", "started"]);
+
+export const gameStatusResponseSchema = z.object({
+	status: gameStatusSchema
+});
 
 export type GameStatus = z.infer<typeof gameStatusSchema>;

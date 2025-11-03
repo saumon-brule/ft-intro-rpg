@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { type AppDispatch } from "../store/store";
 import { FetchError } from "../structures/FetchError";
 import { socket } from "../socket/socket";
-import { setStatus } from "../store/slices/gameSlice";
+import { setQuestStatus } from "../store/slices/questSlice";
 import { activeQuestSchema } from "../structures/schemas/activeQuestSchema";
 import { setActiveQuest } from "../store/slices/questSlice";
 import { setXp } from "../store/slices/teamSlice";
@@ -31,14 +31,14 @@ export function useQuest() {
 				}
 				console.log(data);
 				const activeQuestData = activeQuestSchema.parse(data);
-				dispatch(setStatus(activeQuestData.gameStatus));
+				dispatch(setQuestStatus(activeQuestData.gameStatus));
 				dispatch(setActiveQuest(activeQuestData.quest));
 			})
 			.catch((error) => setError(error))
 			.finally(() => setLoading(false));
 		socket.on("active_quest:assigned", (data) => {
 			const assignedActiveQuestData = assignedActiveQuestSchema.parse(data);
-			dispatch(setStatus(assignedActiveQuestData.gameStatus));
+			dispatch(setQuestStatus(assignedActiveQuestData.gameStatus));
 			dispatch(setXp(assignedActiveQuestData.newXp));
 			dispatch(setActiveQuest(assignedActiveQuestData.quest));
 		});
