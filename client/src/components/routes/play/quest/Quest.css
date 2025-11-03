@@ -72,7 +72,10 @@
 	text-indent: 1em;
 }
 
-.quest footer {}
+.quest footer {
+	padding-inline: 1em;
+	text-align: end;
+}
 
 .quest-reward-container {
 	display: flex;
