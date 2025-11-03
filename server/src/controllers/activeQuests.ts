@@ -124,7 +124,7 @@ export const getMyActiveQuests = async (req: Request, res: Response) => {
 
 	// Find the team for this user
 	const team = await db.getTeamByMember(user.id);
-	if (!team) return res.json([]); // no team => no active quests
+	if (!team) return res.json({ active_quest: null, quest: null, gameStatus: "idle", remaining: 0 });
 
 	// Get active quests for the team (only in_progress). There should be at most one; return only that one if present.
 	let activeList = await db.getActiveQuestsByTeam(team.id);
