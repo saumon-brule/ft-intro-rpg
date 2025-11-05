@@ -16,6 +16,13 @@ export const getTeam = async (req: Request, res: Response) => {
   // augment with members
   const members = await db.getTeamMembers(id);
 
+  // For each member, fetch full user info
+  const users = await Promise.all(members.map((m) => db.findUserById(m.user_id)));
+  const membersDetailed = members.map((m, idx) => ({
+    ...m,
+    ...users[idx]
+  }));
+
   // fetch full guild info instead of returning guild_id
   const guild = await db.getGuildById(team.guild_id);
 
@@ -27,7 +34,7 @@ export const getTeam = async (req: Request, res: Response) => {
     xp: team.xp,
     created_at: team.created_at,
     updated_at: team.updated_at,
-    members
+    members: membersDetailed
   };
 
   res.json(out);
